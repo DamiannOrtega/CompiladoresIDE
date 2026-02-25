@@ -27,8 +27,6 @@ class VentanaPrincipal(QMainWindow):
 
     def __init__(self, gestor=None):
         super().__init__()
-        self._ruta_arch = None
-        self._modificado = False
         self._servicio = ServicioCompilador()
         self._gestor = gestor
         self._iconos = {}   # dict nombre→QIcon, actualizado al cambiar tema
@@ -36,7 +34,36 @@ class VentanaPrincipal(QMainWindow):
         self._construir_ui()
         self._aplicar_iconos()          # iconos iniciales
         self._conectar_senales()
-        self._nuevo_archivo()
+        self._nuevo_archivo()           # abre primera pestaña vacía
+
+    # ── Acceso al editor / estado de la pestaña activa ────────────────
+
+    @property
+    def _editor(self):
+        """Editor de la pestaña actualmente visible."""
+        return self._tabs_editor.currentWidget()
+
+    @property
+    def _ruta_arch(self):
+        w = self._editor
+        return getattr(w, "_ruta_arch", None) if w else None
+
+    @_ruta_arch.setter
+    def _ruta_arch(self, v):
+        w = self._editor
+        if w is not None:
+            w._ruta_arch = v
+
+    @property
+    def _modificado(self):
+        w = self._editor
+        return getattr(w, "_modificado", False) if w else False
+
+    @_modificado.setter
+    def _modificado(self, v):
+        w = self._editor
+        if w is not None:
+            w._modificado = v
 
     # ── Construcción de la UI ─────────────────────────────────────────
 
@@ -45,9 +72,12 @@ class VentanaPrincipal(QMainWindow):
         self.resize(1280, 800)
         self.setMinimumSize(900, 600)
 
-        # Editor central
-        self._editor = EditorCodigo()
-        self.setCentralWidget(self._editor)
+        # ── Tab widget central ──
+        self._tabs_editor = QTabWidget()
+        self._tabs_editor.setTabsClosable(True)
+        self._tabs_editor.setMovable(True)
+        self._tabs_editor.setDocumentMode(True)
+        self.setCentralWidget(self._tabs_editor)
 
         # Paneles
         self._p_tok  = PanelTok()
@@ -119,9 +149,34 @@ class VentanaPrincipal(QMainWindow):
     # ── Menú Ver (temas) ──────────────────────────────────────────────
 
     def _crear_menu_ver(self):
-        """Agrega el menú Ver → Tema con las opciones de tema disponibles."""
+        """Agrega el menú Ver con submenús de Paneles y Tema."""
         m_ver = self._mb.addMenu("&Ver")
-        m_tema = m_ver.addMenu("Tema")
+
+        # ── Paneles ──
+        m_paneles = m_ver.addMenu("&Paneles")
+
+        # Explorador (izquierda)
+        acc_izq = self._dock_izq.toggleViewAction()
+        acc_izq.setText("&Explorador / Símbolos")
+        acc_izq.setShortcut(QKeySequence("Alt+1"))
+        m_paneles.addAction(acc_izq)
+
+        # Análisis (derecha)
+        acc_der = self._dock_der.toggleViewAction()
+        acc_der.setText("&Análisis")
+        acc_der.setShortcut(QKeySequence("Alt+2"))
+        m_paneles.addAction(acc_der)
+
+        # Resultados (abajo)
+        acc_abj = self._dock_abj.toggleViewAction()
+        acc_abj.setText("&Resultados")
+        acc_abj.setShortcut(QKeySequence("Alt+3"))
+        m_paneles.addAction(acc_abj)
+
+        m_ver.addSeparator()
+
+        # ── Tema ──
+        m_tema = m_ver.addMenu("&Tema")
 
         self._grp_temas = QActionGroup(self)
         self._grp_temas.setExclusive(True)
@@ -146,10 +201,11 @@ class VentanaPrincipal(QMainWindow):
         if self._gestor:
             self._gestor.aplicar(nombre)
             self._gestor.guardar()
-            # Actualizar iconos y resaltado del editor con el nuevo tema
+            # Actualizar iconos y resaltado de TODOS los editores abiertos
             self._aplicar_iconos()
             paleta = self._gestor.paleta(nombre)
-            self._editor.set_tema(nombre, paleta)
+            for i in range(self._tabs_editor.count()):
+                self._tabs_editor.widget(i).set_tema(nombre, paleta)
             self._set_estado(f"Tema: {nombre}")
 
     # ── Barra de herramientas ─────────────────────────────────────────
@@ -204,28 +260,26 @@ class VentanaPrincipal(QMainWindow):
         tabs_izq.addTab(self._p_arch, "Explorador")
         tabs_izq.addTab(self._p_sim,  "Símbolos")
 
-        dock_izq = QDockWidget("Explorador", self)
-        dock_izq.setWidget(tabs_izq)
-        dock_izq.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.LeftDockWidgetArea, dock_izq)
+        self._dock_izq = QDockWidget("Explorador", self)
+        self._dock_izq.setWidget(tabs_izq)
+        self._dock_izq.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_izq)
 
         # ── Derecha: Árbol sintáctico + Semántico ──
-        # Placeholder para análisis semántico (se expandirá en fases futuras)
         self._p_semant_info = QLabel(
             "El análisis semántico\naparecerá aquí.",
             alignment=Qt.AlignCenter
         )
-        # objectName controlado por QSS del tema (sin hardcode de color)
         self._p_semant_info.setObjectName("semant_placeholder")
 
         tabs_der = QTabWidget()
         tabs_der.addTab(self._p_arb,         "Árbol Sintáctico")
         tabs_der.addTab(self._p_semant_info, "Semántico")
 
-        dock_der = QDockWidget("Análisis", self)
-        dock_der.setWidget(tabs_der)
-        dock_der.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, dock_der)
+        self._dock_der = QDockWidget("Análisis", self)
+        self._dock_der.setWidget(tabs_der)
+        self._dock_der.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._dock_der)
 
         # ── Abajo: Tokens, IR, Errores, Salida ──
         self._tabs_abj = QTabWidget()
@@ -234,16 +288,15 @@ class VentanaPrincipal(QMainWindow):
         self._tabs_abj.addTab(self._p_err, "Errores")
         self._tabs_abj.addTab(self._p_sal, "Salida")
 
-        dock_abj = QDockWidget("Resultados", self)
-        dock_abj.setWidget(self._tabs_abj)
-        dock_abj.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
-        self.addDockWidget(Qt.BottomDockWidgetArea, dock_abj)
-
+        self._dock_abj = QDockWidget("Resultados", self)
+        self._dock_abj.setWidget(self._tabs_abj)
+        self._dock_abj.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self._dock_abj)
 
         # Tamaños iniciales
-        self.resizeDocks([dock_izq], [220], Qt.Horizontal)
-        self.resizeDocks([dock_der], [260], Qt.Horizontal)
-        self.resizeDocks([dock_abj], [200], Qt.Vertical)
+        self.resizeDocks([self._dock_izq], [220], Qt.Horizontal)
+        self.resizeDocks([self._dock_der], [260], Qt.Horizontal)
+        self.resizeDocks([self._dock_abj], [200], Qt.Vertical)
 
     # ── Conexión de señales ───────────────────────────────────────────
 
@@ -263,39 +316,88 @@ class VentanaPrincipal(QMainWindow):
         self._acc_ejec.triggered.connect(lambda: self._compilar("run"))
         self._acc_todo.triggered.connect(lambda: self._compilar("run"))
 
-        # Editor
-        self._editor.cursor_movido.connect(self._actualizar_posicion)
-        self._editor.textChanged.connect(self._al_modificar)
+        # Pestañas del editor
+        self._tabs_editor.tabCloseRequested.connect(self._cerrar_tab)
+        self._tabs_editor.currentChanged.connect(self._tab_cambiado)
 
         # Explorador
         self._p_arch.archivo_abierto.connect(self._abrir_ruta)
 
         # Panel de errores → navegar al editor
-        self._p_err.ir_a_linea.connect(self._editor.ir_a_linea)
+        self._p_err.ir_a_linea.connect(self._ir_a_linea_activa)
         self._p_err.ir_a_linea.connect(
             lambda n: self._tabs_abj.setCurrentWidget(self._p_err)
         )
+
+    def _ir_a_linea_activa(self, n: int):
+        if self._editor:
+            self._editor.ir_a_linea(n)
 
     def actualizar_check_tema(self, nombre: str):
         """Marca el tema activo en el menú Ver → Tema."""
         for n, acc in self._acc_temas.items():
             acc.setChecked(n == nombre)
 
+    # ── Gestión de pestañas ───────────────────────────────────────────
+
+    def _crear_tab(self, titulo: str = "Sin título") -> EditorCodigo:
+        """Crea un nuevo EditorCodigo, lo agrega como pestaña y lo devuelve."""
+        editor = EditorCodigo()
+        editor._ruta_arch = None
+        editor._modificado = False
+        idx = self._tabs_editor.addTab(editor, titulo)
+        self._tabs_editor.setCurrentIndex(idx)
+        # Señales propias de este editor
+        editor.cursor_movido.connect(self._actualizar_posicion)
+        editor.textChanged.connect(self._al_modificar)
+        return editor
+
+    def _tab_titulo(self, editor: EditorCodigo) -> str:
+        """Devuelve el título adecuado para la pestaña del editor dado."""
+        nombre = os.path.basename(editor._ruta_arch) if editor._ruta_arch else "Sin título"
+        return nombre + (" •" if editor._modificado else "")
+
+    def _tab_cambiado(self, idx: int):
+        """Actualiza título de ventana y barra de estado al cambiar de pestaña."""
+        self._actualizar_titulo()
+        editor = self._tabs_editor.widget(idx)
+        if editor and editor._ruta_arch:
+            self._set_estado(editor._ruta_arch)
+        else:
+            self._set_estado("Nuevo archivo")
+
+    def _cerrar_tab(self, idx: int):
+        """Solicita confirmación si hay cambios, luego cierra la pestaña."""
+        editor = self._tabs_editor.widget(idx)
+        if editor and editor._modificado:
+            self._tabs_editor.setCurrentIndex(idx)
+            titulo = self._tabs_editor.tabText(idx).rstrip(" •")
+            resp = QMessageBox.question(
+                self, "Cambios sin guardar",
+                f"¿Guardar «{titulo}» antes de cerrar?",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel
+            )
+            if resp == QMessageBox.Save:
+                self._tabs_editor.setCurrentIndex(idx)
+                self._guardar()
+            elif resp == QMessageBox.Cancel:
+                return
+
+        # Si es la última pestaña, abrir una nueva vacía primero
+        if self._tabs_editor.count() == 1:
+            self._nuevo_archivo()
+
+        self._tabs_editor.removeTab(idx)
+
     # ── Acciones de archivo ───────────────────────────────────────────
 
     def _nuevo_archivo(self):
-        if not self._confirmar_descarte():
-            return
-        self._editor.clear()
-        self._ruta_arch = None
-        self._modificado = False
-        self._limpiar_paneles()
+        """Crea una pestaña nueva con un editor en blanco."""
+        self._crear_tab("Sin título")
         self._actualizar_titulo()
         self._set_estado("Nuevo archivo")
 
     def _abrir_archivo(self):
-        if not self._confirmar_descarte():
-            return
         ruta, _ = QFileDialog.getOpenFileName(
             self, "Abrir archivo", "",
             "Archivos fuente (*.src *.txt);;Todos los archivos (*)"
@@ -304,14 +406,22 @@ class VentanaPrincipal(QMainWindow):
             self._abrir_ruta(ruta)
 
     def _abrir_ruta(self, ruta: str):
+        # Si el archivo ya está abierto en otra pestaña, sólo cambiar a ella
+        for i in range(self._tabs_editor.count()):
+            ed = self._tabs_editor.widget(i)
+            if getattr(ed, "_ruta_arch", None) == ruta:
+                self._tabs_editor.setCurrentIndex(i)
+                return
+        # Abrir en pestaña nueva
         try:
             with open(ruta, "r", encoding="utf-8") as f:
-                self._editor.setPlainText(f.read())
-            self._ruta_arch = ruta
-            self._modificado = False
+                contenido = f.read()
+            editor = self._crear_tab(os.path.basename(ruta))
+            editor.setPlainText(contenido)
+            editor._ruta_arch = ruta
+            editor._modificado = False
             self._actualizar_titulo()
             self._set_estado(f"Abierto: {os.path.basename(ruta)}")
-            # Actualizar explorador al directorio del archivo
             self._p_arch.set_directorio(os.path.dirname(ruta))
         except Exception as ex:
             QMessageBox.critical(self, "Error", f"No se pudo abrir el archivo:\n{ex}")
@@ -408,15 +518,25 @@ class VentanaPrincipal(QMainWindow):
         self._lbl_pos.setText(f"Ln {linea}, Col {col}")
 
     def _al_modificar(self):
-        if not self._modificado:
-            self._modificado = True
+        editor = self._editor
+        if editor and not editor._modificado:
+            editor._modificado = True
             self._actualizar_titulo()
 
     def _actualizar_titulo(self):
-        nombre = os.path.basename(self._ruta_arch) if self._ruta_arch else "Sin título"
-        mod = " •" if self._modificado else ""
-        self.setWindowTitle(f"{nombre}{mod} — {self.TITULO}")
-        self._lbl_arch.setText(nombre)
+        editor = self._editor
+        if editor:
+            nombre = os.path.basename(editor._ruta_arch) if editor._ruta_arch else "Sin título"
+            mod = " •" if editor._modificado else ""
+            self.setWindowTitle(f"{nombre}{mod} — {self.TITULO}")
+            self._lbl_arch.setText(nombre)
+            # Actualizar el texto de la pestaña activa
+            idx = self._tabs_editor.currentIndex()
+            if idx >= 0:
+                self._tabs_editor.setTabText(idx, nombre + mod)
+        else:
+            self.setWindowTitle(self.TITULO)
+            self._lbl_arch.setText("")
 
     def _set_estado(self, msg: str):
         self._lbl_estado.setText(msg)
@@ -424,7 +544,26 @@ class VentanaPrincipal(QMainWindow):
     # ── Cierre ────────────────────────────────────────────────────────
 
     def closeEvent(self, evento):
-        if self._confirmar_descarte():
+        """Pide confirmar el cierre si hay pestañas con cambios sin guardar."""
+        pestanas_modificadas = [
+            (i, self._tabs_editor.widget(i))
+            for i in range(self._tabs_editor.count())
+            if getattr(self._tabs_editor.widget(i), "_modificado", False)
+        ]
+        if not pestanas_modificadas:
+            evento.accept()
+            return
+
+        nombres = "\n".join(
+            f"  • {self._tabs_editor.tabText(i).rstrip(' •')}"
+            for i, _ in pestanas_modificadas
+        )
+        resp = QMessageBox.question(
+            self, "Cambios sin guardar",
+            f"Hay archivos con cambios sin guardar:\n{nombres}\n\n¿Salir de todas formas?",
+            QMessageBox.Discard | QMessageBox.Cancel
+        )
+        if resp == QMessageBox.Discard:
             evento.accept()
         else:
             evento.ignore()
