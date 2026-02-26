@@ -44,13 +44,13 @@ _COLORES_AZUL = {
 }
 
 _COLORES_CONTRASTE = {
-    "kw":      "#00ffff",
-    "tipo":    "#00ff00",
-    "num":     "#ffff00",
-    "str":     "#ff8c00",
-    "com":     "#aaaaaa",
-    "delim":   "#ff69b4",
-    "op":      "#ffffff",
+    "kw":      "#c45000",   # naranja oscuro (palabras clave)
+    "tipo":    "#0070a8",   # azul petróleo (tipos)
+    "num":     "#2e7d32",   # verde oscuro (números)
+    "str":     "#b71c1c",   # rojo ladrillo (cadenas)
+    "com":     "#8d6e63",   # marrón (comentarios)
+    "delim":   "#ea6b00",   # naranja acento (delimitadores)
+    "op":      "#1a0d00",   # texto principal (operadores)
 }
 
 COLORES_TEMA: dict[str, dict] = {

@@ -79,25 +79,25 @@ _PALETAS: dict[str, dict] = {
         "grid":        "#21262d",
     },
     "Alto Contraste": {
-        "bg":          "#000000",
-        "bg2":         "#111111",
-        "bg3":         "#000000",
-        "borde":       "#ffff00",
-        "txt":         "#ffffff",
-        "txt2":        "#cccccc",
-        "acento":      "#ffff00",
-        "acento_txt":  "#000000",
-        "sel":         "#ffff00",
-        "sel_txt":     "#000000",
-        "hover":       "#222222",
-        "hover_btn":   "#333300",
-        "pressed":     "#666600",
-        "editor_bg":   "#000000",
-        "editor_txt":  "#ffffff",
-        "editor_sel":  "#ffff00",
-        "scroll":      "#ffff00",
-        "scroll_hov":  "#cccc00",
-        "grid":        "#333333",
+        "bg":          "#fffaf5",   # fondo principal (blanco cálido)
+        "bg2":         "#fff0e0",   # fondo paneles / filas alternas
+        "bg3":         "#ffd9b0",   # fondo barras / cabeceras
+        "borde":       "#ea6b00",   # separadores naranja
+        "txt":         "#1a0d00",   # texto principal (casi negro cálido)
+        "txt2":        "#7a4a1e",   # texto secundario
+        "acento":      "#ea6b00",   # acento naranja
+        "acento_txt":  "#ffffff",   # texto sobre acento
+        "sel":         "#ffd9b0",   # fondo selección naranja claro
+        "sel_txt":     "#1a0d00",
+        "hover":       "#fff0e0",   # hover en items
+        "hover_btn":   "#ffd9b0",   # hover en botones
+        "pressed":     "#ffb366",   # pressed naranja medio
+        "editor_bg":   "#ffffff",
+        "editor_txt":  "#1a0d00",
+        "editor_sel":  "#ffd9b0",
+        "scroll":      "#ffb366",
+        "scroll_hov":  "#ea6b00",
+        "grid":        "#ffd9b0",
     },
 }
 

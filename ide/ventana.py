@@ -1,6 +1,8 @@
 # ventana.py — Ventana principal del IDE (QMainWindow)
 
 import os
+import ctypes
+import ctypes.wintypes
 from PySide6.QtWidgets import (
     QMainWindow, QDockWidget, QTabWidget, QWidget,
     QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar
@@ -20,6 +22,42 @@ from ide.servicios.compilador import ServicioCompilador
 from ide.iconos import gestor_ico
 
 
+# ── Utilidad: colorear barra de título (Windows 10/11) ────────────────────────
+
+def _aplicar_color_titlebar(hwnd: int, color_hex: str, es_oscuro: bool):
+    """Aplica el color de fondo a la barra de título nativa de Windows.
+
+    Usa dos atributos DWM:
+      - DWMWA_USE_IMMERSIVE_DARK_MODE (20): activa texto blanco en Win10+
+      - DWMWA_CAPTION_COLOR (35): color exacto de la barra (Win11 22000+)
+    Si la llamada falla en algún sistema, se ignora silenciosamente.
+    """
+    try:
+        dwm = ctypes.windll.dwmapi
+
+        # Modo oscuro/claro del texto de la barra (Win10 1809+)
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        dark = ctypes.c_int(1 if es_oscuro else 0)
+        dwm.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ctypes.byref(dark), ctypes.sizeof(dark)
+        )
+
+        # Color exacto de fondo de la barra de título (Win11 build 22000+)
+        DWMWA_CAPTION_COLOR = 35
+        # COLORREF = 0x00BBGGRR
+        r = int(color_hex[1:3], 16)
+        g = int(color_hex[3:5], 16)
+        b = int(color_hex[5:7], 16)
+        colorref = ctypes.c_uint(r | (g << 8) | (b << 16))
+        dwm.DwmSetWindowAttribute(
+            hwnd, DWMWA_CAPTION_COLOR,
+            ctypes.byref(colorref), ctypes.sizeof(colorref)
+        )
+    except Exception:
+        pass  # No disponible en Linux/macOS o builds antiguos de Windows
+
+
 class VentanaPrincipal(QMainWindow):
     """Ventana principal del IDE de compiladores."""
 
@@ -35,6 +73,7 @@ class VentanaPrincipal(QMainWindow):
         self._aplicar_iconos()          # iconos iniciales
         self._conectar_senales()
         self._nuevo_archivo()           # abre primera pestaña vacía
+        self._aplicar_titlebar()        # color de barra de título
 
     # ── Acceso al editor / estado de la pestaña activa ────────────────
 
@@ -206,6 +245,7 @@ class VentanaPrincipal(QMainWindow):
             paleta = self._gestor.paleta(nombre)
             for i in range(self._tabs_editor.count()):
                 self._tabs_editor.widget(i).set_tema(nombre, paleta)
+            self._aplicar_titlebar()
             self._set_estado(f"Tema: {nombre}")
 
     # ── Barra de herramientas ─────────────────────────────────────────
@@ -350,6 +390,11 @@ class VentanaPrincipal(QMainWindow):
         # Señales propias de este editor
         editor.cursor_movido.connect(self._actualizar_posicion)
         editor.textChanged.connect(self._al_modificar)
+        # Aplicar el tema activo al nuevo editor
+        if self._gestor:
+            nombre = self._gestor.actual
+            paleta = self._gestor.paleta(nombre)
+            editor.set_tema(nombre, paleta)
         return editor
 
     def _tab_titulo(self, editor: EditorCodigo) -> str:
@@ -540,6 +585,19 @@ class VentanaPrincipal(QMainWindow):
 
     def _set_estado(self, msg: str):
         self._lbl_estado.setText(msg)
+
+    def _aplicar_titlebar(self):
+        """Colorea la barra de título nativa según el tema activo."""
+        if not self._gestor:
+            return
+        paleta = self._gestor.paleta()
+        color_bg = paleta.get("bg3", "#2d2d2d")
+        # El texto de la barra es oscuro si el fondo es claro (luminancia > 0.5)
+        r, g, b = int(color_bg[1:3], 16), int(color_bg[3:5], 16), int(color_bg[5:7], 16)
+        luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        es_oscuro = luminancia < 0.5
+        hwnd = int(self.winId())
+        _aplicar_color_titlebar(hwnd, color_bg, es_oscuro)
 
     # ── Cierre ────────────────────────────────────────────────────────
 

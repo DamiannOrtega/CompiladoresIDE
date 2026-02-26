@@ -44,7 +44,7 @@ def main():
     # Ventana principal
     ventana = VentanaPrincipal(gestor)
     ventana.setWindowIcon(ico_app)
-    ventana.show()
+    ventana.showMaximized()
 
     sys.exit(app.exec())
 
