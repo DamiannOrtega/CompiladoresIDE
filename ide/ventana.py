@@ -70,10 +70,11 @@ class VentanaPrincipal(QMainWindow):
         self._iconos = {}   # dict nombre→QIcon, actualizado al cambiar tema
 
         self._construir_ui()
-        self._aplicar_iconos()          # iconos iniciales
+        self._aplicar_iconos()
         self._conectar_senales()
-        self._nuevo_archivo()           # abre primera pestaña vacía
-        self._aplicar_titlebar()        # color de barra de título
+        self.setWindowTitle(self.TITULO)
+        self._set_estado("Sin archivos abiertos")
+        self._aplicar_titlebar()
 
     # ── Acceso al editor / estado de la pestaña activa ────────────────
 
@@ -146,6 +147,7 @@ class VentanaPrincipal(QMainWindow):
         m_arch.addSeparator()
         self._acc_guardar = self._accion("Guardar",      "Ctrl+S", m_arch)
         self._acc_guar_as = self._accion("Guardar como...", "Ctrl+Shift+S", m_arch)
+        self._acc_cerrar  = self._accion("Cerrar",       "Ctrl+W", m_arch)
         m_arch.addSeparator()
         self._acc_salir   = self._accion("Salir",        "Ctrl+Q", m_arch)
 
@@ -245,6 +247,7 @@ class VentanaPrincipal(QMainWindow):
             paleta = self._gestor.paleta(nombre)
             for i in range(self._tabs_editor.count()):
                 self._tabs_editor.widget(i).set_tema(nombre, paleta)
+            self._p_arch.set_tema(paleta)   # ícono .src del explorador
             self._aplicar_titlebar()
             self._set_estado(f"Tema: {nombre}")
 
@@ -324,7 +327,7 @@ class VentanaPrincipal(QMainWindow):
         # ── Abajo: Tokens, IR, Errores, Salida ──
         self._tabs_abj = QTabWidget()
         self._tabs_abj.addTab(self._p_tok, "Tokens")
-        self._tabs_abj.addTab(self._p_ir,  "Código IR")
+        self._tabs_abj.addTab(self._p_ir,  "Código Intermedio")
         self._tabs_abj.addTab(self._p_err, "Errores")
         self._tabs_abj.addTab(self._p_sal, "Salida")
 
@@ -346,6 +349,7 @@ class VentanaPrincipal(QMainWindow):
         self._acc_abrir.triggered.connect(self._abrir_archivo)
         self._acc_guardar.triggered.connect(self._guardar)
         self._acc_guar_as.triggered.connect(self._guardar_como)
+        self._acc_cerrar.triggered.connect(lambda: self._cerrar_tab(self._tabs_editor.currentIndex()))
         self._acc_salir.triggered.connect(self.close)
 
         # Compilar
@@ -417,22 +421,31 @@ class VentanaPrincipal(QMainWindow):
         if editor and editor._modificado:
             self._tabs_editor.setCurrentIndex(idx)
             titulo = self._tabs_editor.tabText(idx).rstrip(" •")
-            resp = QMessageBox.question(
-                self, "Cambios sin guardar",
-                f"¿Guardar «{titulo}» antes de cerrar?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel
-            )
-            if resp == QMessageBox.Save:
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Cambios sin guardar")
+            msg.setText(f"¿Qué deseas hacer con «{titulo}»?")
+            msg.setIcon(QMessageBox.Question)
+            btn_guardar = msg.addButton("Guardar", QMessageBox.AcceptRole)
+            btn_salir   = msg.addButton("Cerrar",  QMessageBox.DestructiveRole)
+            btn_cancel  = msg.addButton("Cancelar", QMessageBox.RejectRole)
+            msg.setDefaultButton(btn_guardar)
+            self._colorear_dialogo(msg)
+            msg.exec()
+            self._aplicar_titlebar()   # restaurar color tras cerrar el diálogo
+            clicked = msg.clickedButton()
+            if clicked == btn_guardar:
                 self._tabs_editor.setCurrentIndex(idx)
                 self._guardar()
-            elif resp == QMessageBox.Cancel:
+            elif clicked == btn_cancel:
                 return
 
-        # Si es la última pestaña, abrir una nueva vacía primero
-        if self._tabs_editor.count() == 1:
-            self._nuevo_archivo()
-
         self._tabs_editor.removeTab(idx)
+
+        # Si ya no quedan pestañas, limpiar título y estado
+        if self._tabs_editor.count() == 0:
+            self.setWindowTitle(self.TITULO)
+            self._lbl_arch.setText("")
+            self._set_estado("Sin archivos abiertos")
 
     # ── Acciones de archivo ───────────────────────────────────────────
 
@@ -599,6 +612,17 @@ class VentanaPrincipal(QMainWindow):
         hwnd = int(self.winId())
         _aplicar_color_titlebar(hwnd, color_bg, es_oscuro)
 
+    def _colorear_dialogo(self, dlg):
+        """Aplica el color de barra de título del tema activo a un diálogo (ej. QMessageBox)."""
+        if not self._gestor:
+            return
+        paleta = self._gestor.paleta()
+        color_bg = paleta.get("bg3", "#2d2d2d")
+        r, g, b = int(color_bg[1:3], 16), int(color_bg[3:5], 16), int(color_bg[5:7], 16)
+        luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        es_oscuro = luminancia < 0.5
+        _aplicar_color_titlebar(int(dlg.winId()), color_bg, es_oscuro)
+
     # ── Cierre ────────────────────────────────────────────────────────
 
     def closeEvent(self, evento):
@@ -616,12 +640,25 @@ class VentanaPrincipal(QMainWindow):
             f"  • {self._tabs_editor.tabText(i).rstrip(' •')}"
             for i, _ in pestanas_modificadas
         )
-        resp = QMessageBox.question(
-            self, "Cambios sin guardar",
-            f"Hay archivos con cambios sin guardar:\n{nombres}\n\n¿Salir de todas formas?",
-            QMessageBox.Discard | QMessageBox.Cancel
-        )
-        if resp == QMessageBox.Discard:
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Cambios sin guardar")
+        msg.setText(f"Hay archivos con cambios sin guardar:\n{nombres}\n\n¿Qué deseas hacer?")
+        msg.setIcon(QMessageBox.Question)
+        btn_guardar = msg.addButton("Guardar", QMessageBox.AcceptRole)
+        btn_salir   = msg.addButton("Salir",   QMessageBox.DestructiveRole)
+        btn_cancel  = msg.addButton("Cancelar", QMessageBox.RejectRole)
+        msg.setDefaultButton(btn_guardar)
+        self._colorear_dialogo(msg)
+        msg.exec()
+        self._aplicar_titlebar()   # restaurar color tras cerrar el diálogo
+        clicked = msg.clickedButton()
+        if clicked == btn_guardar:
+            for _, ed in pestanas_modificadas:
+                if ed._modificado:
+                    self._tabs_editor.setCurrentWidget(ed)
+                    self._guardar()
+            evento.accept()
+        elif clicked == btn_salir:
             evento.accept()
         else:
             evento.ignore()

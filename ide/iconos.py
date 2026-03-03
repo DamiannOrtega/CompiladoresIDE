@@ -89,6 +89,14 @@ _SVGS: dict[str, str] = {
   <text x="8" y="44" font-size="42" fill="FILL"
     font-family="Consolas,monospace" font-weight="bold">&lt;/&gt;</text>
 </svg>""",
+
+    # Archivo .src — hoja con código
+    "archivo_src": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <path fill="none" stroke="FILL" stroke-width="1" d="M3 1h7l3 3v11H3V1z"/>
+  <path fill="none" stroke="FILL" stroke-width="0.9" d="M10 1v3h3"/>
+  <text x="3.5" y="11.5" font-size="4.2" fill="FILL"
+    font-family="Consolas,monospace" font-weight="bold">src</text>
+</svg>""",
 }
 
 
