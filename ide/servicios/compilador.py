@@ -57,18 +57,18 @@ class ServicioCompilador:
 
     def _mock_tok(self):
         return [
-            Tok("int",   "KEYWORD",    1, 1),
-            Tok("x",     "IDENTIFIER", 1, 5),
-            Tok("=",     "OPERATOR",   1, 7),
-            Tok("10",    "NUMBER",     1, 9),
-            Tok(";",     "DELIMITER",  1, 11),
-            Tok("float", "KEYWORD",    2, 1),
-            Tok("y",     "IDENTIFIER", 2, 7),
-            Tok("=",     "OPERATOR",   2, 9),
-            Tok("x",     "IDENTIFIER", 2, 11),
-            Tok("+",     "OPERATOR",   2, 13),
-            Tok("2.5",   "NUMBER",     2, 15),
-            Tok(";",     "DELIMITER",  2, 18),
+            Tok("int",   "RESERVADA",    1, 1),
+            Tok("x",     "IDENTIFICADOR", 1, 5),
+            Tok("=",     "OPERADOR",   1, 7),
+            Tok("10",    "NUMERO",     1, 9),
+            Tok(";",     "DELIMITANTE",  1, 11),
+            Tok("float", "RESERVADA",    2, 1),
+            Tok("y",     "IDENTIFICADOR", 2, 7),
+            Tok("=",     "OPERADOR",   2, 9),
+            Tok("x",     "IDENTIFICADOR", 2, 11),
+            Tok("+",     "OPERADOR",   2, 13),
+            Tok("2.5",   "FLOTANTE",     2, 15),
+            Tok(";",     "DELIMITANTE",  2, 18),
         ]
 
     def _mock_err(self):
