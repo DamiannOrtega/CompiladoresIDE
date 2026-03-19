@@ -1,5 +1,4 @@
 # modelos/datos.py — Estructuras de datos del compilador
-# Coinciden con los formatos definidos en docs/OUTPUT_FORMATS.md
 
 from dataclasses import dataclass, field
 from typing import List

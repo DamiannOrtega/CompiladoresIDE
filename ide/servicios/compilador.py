@@ -1,108 +1,70 @@
-# servicios/compilador.py — Servicio de compilación (mock para Fase 1)
+# servicios/compilador.py — Servicio de compilación
 #
-# En Fase 2, compilar() ejecutará:
-#   python compiler.py --phase <fase> --in <ruta> --out <sal>
-# y leerá los archivos JSON/TXT generados.
-#
-# Por ahora devuelve datos simulados para probar la UI.
+# Fase 1 (léxica): llama al analizador léxico real.
+# Fases 2-5: pendientes de implementación.
+
+import os
 
 from ide.modelos.datos import (
     Tok, Err, Sim, NodoArb, ResultadoCompilacion
 )
+from ide.compilador.lexico import analyze as _analyze_lexico
 
 
 class ServicioCompilador:
-    """Gestiona la comunicación con el compilador (mock en Fase 1)."""
+    """Gestiona la comunicación con el compilador."""
 
-    # Fases soportadas (igual que el CLI futuro)
+    # Fases soportadas
     FASES = ["lexical", "syntax", "semantic", "ir", "run"]
 
-    def compilar(self, fase: str, ruta: str = "") -> ResultadoCompilacion:
-        """Ejecuta la fase indicada y devuelve un ResultadoCompilacion."""
+    def compilar(self, fase: str, ruta: str = "", texto: str = "") -> ResultadoCompilacion:
+        """
+        Ejecuta la fase indicada y devuelve un ResultadoCompilacion.
+
+        Parámetros
+        ----------
+        fase  : fase de compilación ("lexical", "syntax", ...)
+        ruta  : ruta del archivo en disco (usada como respaldo si texto está vacío)
+        texto : contenido del editor — tiene prioridad sobre ruta
+        """
         res = ResultadoCompilacion(fase=fase)
 
         if fase == "lexical":
-            res.tok = self._mock_tok()
-            res.err = []
+            # ── Obtener el código fuente ───────────────────────────────
+            # Prioridad: texto del editor → archivo en disco
+            if not texto and ruta and os.path.isfile(ruta):
+                try:
+                    with open(ruta, "r", encoding="utf-8") as f:
+                        texto = f.read()
+                except Exception:
+                    pass
 
+            # ── Ejecutar el analizador léxico real ─────────────────────
+            tokens, errores = _analyze_lexico(texto)
+
+            # Convertir Token → Tok
+            res.tok = [
+                Tok(lexema=t.valor, tipo=t.tipo, linea=t.linea, col=t.columna)
+                for t in tokens
+            ]
+            # Convertir ErrorLexico → Err
+            res.err = [
+                Err(tipo="lexico", linea=e.linea, col=e.columna, msg=f"{e.error}: '{e.valor}'")
+                for e in errores
+            ]
+
+        # Las siguientes fases aún no están implementadas.
+        # Devuelven resultados vacíos hasta que se desarrollen.
         elif fase == "syntax":
-            res.tok = self._mock_tok()
-            res.arb = self._mock_arb()
-            res.err = []
+            res.err = [Err(tipo="info", linea=0, col=0, msg="Análisis sintáctico aún no implementado.")]
 
         elif fase == "semantic":
-            res.tok = self._mock_tok()
-            res.arb = self._mock_arb()
-            res.sim = self._mock_sim()
-            res.err = []
+            res.err = [Err(tipo="info", linea=0, col=0, msg="Análisis semántico aún no implementado.")]
 
         elif fase == "ir":
-            res.tok = self._mock_tok()
-            res.arb = self._mock_arb()
-            res.sim = self._mock_sim()
-            res.ir = self._mock_ir()
-            res.err = []
+            res.ir = "-- Generación de código intermedio aún no implementada. --"
 
         elif fase == "run":
-            res.tok = self._mock_tok()
-            res.arb = self._mock_arb()
-            res.sim = self._mock_sim()
-            res.ir = self._mock_ir()
-            res.sal = self._mock_sal()
-            res.err = []
+            res.sal = "-- Ejecución aún no implementada. --"
 
         return res
-
-    # ── Datos simulados ──────────────────────────────────────────────────
-
-    def _mock_tok(self):
-        return [
-            Tok("int",   "RESERVADA",    1, 1),
-            Tok("x",     "IDENTIFICADOR", 1, 5),
-            Tok("=",     "OPERADOR",   1, 7),
-            Tok("10",    "NUMERO",     1, 9),
-            Tok(";",     "DELIMITANTE",  1, 11),
-            Tok("float", "RESERVADA",    2, 1),
-            Tok("y",     "IDENTIFICADOR", 2, 7),
-            Tok("=",     "OPERADOR",   2, 9),
-            Tok("x",     "IDENTIFICADOR", 2, 11),
-            Tok("+",     "OPERADOR",   2, 13),
-            Tok("2.5",   "FLOTANTE",     2, 15),
-            Tok(";",     "DELIMITANTE",  2, 18),
-        ]
-
-    def _mock_err(self):
-        return [
-            Err("syntax",   3, 10, "Token inesperado '}'"),
-            Err("semantic", 5,  1, "Variable 'z' no declarada"),
-        ]
-
-    def _mock_sim(self):
-        return [
-            Sim("x", "int",   "global", 1),
-            Sim("y", "float", "global", 2),
-        ]
-
-    def _mock_arb(self):
-        prog = NodoArb("Programa")
-        decl_x = NodoArb("Declaración")
-        decl_x.hijos = [NodoArb("int"), NodoArb("x"), NodoArb("= 10")]
-        decl_y = NodoArb("Declaración")
-        decl_y.hijos = [NodoArb("float"), NodoArb("y"), NodoArb("= x + 2.5")]
-        prog.hijos = [decl_x, decl_y]
-        return prog
-
-    def _mock_ir(self):
-        return (
-            "t1 = 10\n"
-            "x  = t1\n"
-            "t2 = x + 2.5\n"
-            "y  = t2\n"
-        )
-
-    def _mock_sal(self):
-        return (
-            "Programa ejecutado correctamente.\n"
-            "x = 10\n"
-            "y = 12.5\n"
-        )

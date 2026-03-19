@@ -1,0 +1,20 @@
+[
+  {
+    "error": "Carácter inválido",
+    "valor": "@",
+    "linea": 16,
+    "columna": 1
+  },
+  {
+    "error": "Carácter inválido",
+    "valor": "#",
+    "linea": 16,
+    "columna": 3
+  },
+  {
+    "error": "Número mal formado",
+    "valor": "1.2.3",
+    "linea": 17,
+    "columna": 1
+  }
+]

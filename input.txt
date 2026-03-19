@@ -1,0 +1,17 @@
+// Comentario de una linea
+int x = 10;
+float y = x + 2.5;
+/* comentario
+   de bloque */
+if (x >= 0) {
+    y = x + y;
+}
+while (x != 0) {
+    x--;
+}
+main() {
+    int a = 5;
+    cout a;
+}
+@ # caracteres invalidos
+1.2.3 numero_mal_formado

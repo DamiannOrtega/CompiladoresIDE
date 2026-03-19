@@ -1,0 +1,32 @@
+// ── PRUEBA 1: Tokens válidos ─────────────────────────────────────────────
+// Solo código correcto, sin errores léxicos.
+
+main() {
+    int a = 10;
+    int b = 20;
+    float resultado = 0.0;
+    resultado = a + b;
+    cout resultado;
+}
+
+while (a != 0) {
+    a--;
+}
+
+if (b >= 10) {
+    b = b + 1;
+} else {
+    b = b - 1;
+}
+
+switch (a) {
+    case 1:
+        cout a;
+    end
+}
+
+/* variables con nombres largos */
+int contador = 0;
+float promedio = 3.14;
+int while7 = 5;
+int if99 = 1;

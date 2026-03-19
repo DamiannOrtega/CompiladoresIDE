@@ -1,0 +1,45 @@
+// ── PRUEBA 5: Palabras reservadas e identificadores ─────────────────────
+// Demuestra la diferencia entre palabras reservadas e identificadores.
+
+// Palabras RESERVADAS (deben salir como PALABRA_RESERVADA):
+// if  else  end  do  while  switch  case  int  float  main  cin  cout
+
+main() {
+    int contador = 0;
+    float promedio = 0.0;
+
+    while (contador < 10) {
+        contador++;
+    }
+
+    if (contador == 10) {
+        cout contador;
+    } else {
+        cout promedio;
+    }
+
+    do {
+        contador--;
+    } end
+
+    switch (contador) {
+        case 0:
+            cout contador;
+        end
+        case 1:
+            cout promedio;
+        end
+    }
+
+    cin promedio;
+}
+
+// Identificadores que CONTIENEN palabras reservadas → son IDENTIFICADORES válidos:
+int while7     = 1;
+int if99       = 2;
+int else_val   = 3;
+int main2      = 4;
+int contador   = 5;
+int _internal  = 6;
+int valor123   = 7;
+int mi_variable = 8;

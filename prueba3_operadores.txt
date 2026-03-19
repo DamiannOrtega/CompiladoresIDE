@@ -1,0 +1,38 @@
+// ── PRUEBA 3: Operadores y símbolos ─────────────────────────────────────
+// Demuestra todos los tipos de operadores y símbolos.
+
+main() {
+    int a = 5;
+    int b = 3;
+
+    // Operadores aritméticos: +  -  *  /  %  ^  ++  --
+    int suma   = a + b;
+    int resta  = a - b;
+    int mult   = a * b;
+    int div    = a / b;
+    int mod    = a % b;
+    int pot    = a ^ b;
+    a++;
+    b--;
+
+    // Operadores relacionales: <  <=  >  >=  ==  !=
+    if (a < b)  { cout a; }
+    if (a <= b) { cout a; }
+    if (a > b)  { cout b; }
+    if (a >= b) { cout b; }
+    if (a == b) { cout a; }
+    if (a != b) { cout b; }
+
+    // Operadores lógicos: &&  ||  !
+    if (a > 0 && b > 0) { cout suma; }
+    if (a > 0 || b < 0) { cout resta; }
+    if (!a)              { cout mod; }
+
+    // Asignación
+    a = 10;
+    b = 20;
+
+    // Símbolos: ( ) { } , ; " '
+    cin a;
+    cout a;
+}

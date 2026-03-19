@@ -529,7 +529,8 @@ class VentanaPrincipal(QMainWindow):
         self._set_estado(f"Compilando ({fase})...")
         self._limpiar_paneles()
 
-        res = self._servicio.compilar(fase, self._ruta_arch or "")
+        texto_editor = self._editor.toPlainText() if self._editor else ""
+        res = self._servicio.compilar(fase, self._ruta_arch or "", texto_editor)
 
         # Poblar paneles según la fase
         if res.tok:
