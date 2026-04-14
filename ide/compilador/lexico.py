@@ -11,7 +11,7 @@ from ide.compilador.tokens import (
     NUMERO_ENTERO, NUMERO_REAL,
     IDENTIFICADOR, PALABRA_RESERVADA,
     OPERADOR_ARITMETICO, OPERADOR_RELACIONAL, OPERADOR_LOGICO,
-    SIMBOLO, ASIGNACION, COMENTARIO,
+    SIMBOLO, ASIGNACION,
     PALABRAS_RESERVADAS,
     OPERADORES_ARITMETICOS_DOBLES, OPERADORES_RELACIONALES,
     OPERADORES_LOGICOS_DOBLES,
@@ -62,6 +62,26 @@ class Lexer:
             return self._texto[idx]
         return ""
 
+    def _ver_sin_blancos(self, desde: int = 1) -> Tuple[str, int]:
+        """
+        Busca el siguiente carácter no-blanco a partir de 'desde' posiciones
+        adelante. Retorna (caracter, offset_real) o ('', -1) si no encuentra.
+        Los blancos considerados son: espacio, tab, \r, \n.
+        """
+        idx = self._pos + desde
+        while idx < len(self._texto):
+            ch = self._texto[idx]
+            if ch not in (" ", "\t", "\r", "\n"):
+                return ch, idx - self._pos
+            idx += 1
+        return "", -1
+
+    def _avanzar_hasta(self, offset: int):
+        """Avanza el puntero hasta la posición self._pos + offset (excluido)."""
+        veces = offset
+        for _ in range(veces):
+            self._avanzar()
+
     def _avanzar(self) -> str:
         """Consume y retorna el carácter actual, actualizando la posición."""
         ch = self._texto[self._pos]
@@ -104,28 +124,38 @@ class Lexer:
             self._leer_identificador()
             return
 
-        # ── Operadores de dos caracteres ──────────────────────────────────
-        doble = ch + self._ver()
+        # ── Operadores de dos caracteres (con tolerancia a blancos) ─────────
+        # Primero intentamos el carácter siguiente inmediato.
+        siguiente_inmediato = self._ver()          # puede ser blanco
+        doble_inmediato = ch + siguiente_inmediato
 
-        if doble in OPERADORES_ARITMETICOS_DOBLES:
+        # Si no forma doble directo, buscamos el siguiente no-blanco.
+        sig_nb, offset_nb = self._ver_sin_blancos(1)
+        doble_nb = ch + sig_nb
+
+        # Determinamos qué "doble" usar: primero el inmediato (sin blancos),
+        # luego el que salta blancos.
+        def _intentar_doble(doble: str, offset: int) -> bool:
+            """Registra el operador doble consumiendo 'offset+1' chars totales."""
             col = self._columna
             lin = self._linea
-            self._avanzar(); self._avanzar()
-            self._tokens.append(Token(OPERADOR_ARITMETICO, doble, lin, col))
+            self._avanzar_hasta(offset + 1)   # consume ch + blancos + sig
+            if doble in OPERADORES_ARITMETICOS_DOBLES:
+                self._tokens.append(Token(OPERADOR_ARITMETICO, doble, lin, col))
+            elif doble in OPERADORES_RELACIONALES:
+                self._tokens.append(Token(OPERADOR_RELACIONAL, doble, lin, col))
+            elif doble in OPERADORES_LOGICOS_DOBLES:
+                self._tokens.append(Token(OPERADOR_LOGICO, doble, lin, col))
+            return True
+
+        # Caso 1: el siguiente carácter inmediato forma operador doble
+        if doble_inmediato in OPERADORES_ARITMETICOS_DOBLES | OPERADORES_RELACIONALES | OPERADORES_LOGICOS_DOBLES:
+            _intentar_doble(doble_inmediato, 1)
             return
 
-        if doble in OPERADORES_RELACIONALES:
-            col = self._columna
-            lin = self._linea
-            self._avanzar(); self._avanzar()
-            self._tokens.append(Token(OPERADOR_RELACIONAL, doble, lin, col))
-            return
-
-        if doble in OPERADORES_LOGICOS_DOBLES:
-            col = self._columna
-            lin = self._linea
-            self._avanzar(); self._avanzar()
-            self._tokens.append(Token(OPERADOR_LOGICO, doble, lin, col))
+        # Caso 2: hay blancos entre los dos caracteres pero juntos forman doble
+        if offset_nb > 1 and doble_nb in OPERADORES_ARITMETICOS_DOBLES | OPERADORES_RELACIONALES | OPERADORES_LOGICOS_DOBLES:
+            _intentar_doble(doble_nb, offset_nb)
             return
 
         # ── Operadores relacionales de un carácter (<, >) ─────────────────
@@ -177,16 +207,12 @@ class Lexer:
     # ── Lectores especializados ───────────────────────────────────────────────
 
     def _leer_comentario_linea(self):
-        """Consume un comentario de una línea (// hasta fin de línea)."""
-        lin = self._linea
-        col = self._columna
-        lexema = ""
+        """Consume un comentario de una línea (// hasta fin de línea) sin tokenizarlo."""
         while not self._fin() and self._actual() != "\n":
-            lexema += self._avanzar()
-        self._tokens.append(Token(COMENTARIO, lexema, lin, col))
+            self._avanzar()
 
     def _leer_comentario_bloque(self):
-        """Consume un comentario de bloque (/* ... */)."""
+        """Consume un comentario de bloque (/* ... */) sin tokenizarlo."""
         lin = self._linea
         col = self._columna
         lexema = ""
@@ -201,34 +227,71 @@ class Lexer:
                 lexema += self._avanzar()   # /
                 cerrado = True
                 break
-        if cerrado:
-            self._tokens.append(Token(COMENTARIO, lexema, lin, col))
-        else:
+        if not cerrado:
             self._errores.append(ErrorLexico(COMENTARIO_NO_CERRADO, lexema, lin, col))
 
     def _leer_numero(self):
         """
-        Consume un número entero o real.
-        Detecta números mal formados como '1.2.3'.
+        Consume un número entero o real modelando el autómata correctamente.
+
+        Casos:
+          - '32'      → NUMERO_ENTERO
+          - '3.14'    → NUMERO_REAL
+          - '32.algo' → el autómata consume '32.' esperando dígitos, ve 'a' →
+                        descarta '32.' completo como NUMERO_MAL_FORMADO,
+                        'algo' lo procesa la siguiente iteración como IDENTIFICADOR
+          - '34.34.34.34' → emite '34.34' como NUMERO_REAL, el '.' que sigue
+                        es error por sí solo ('.'), luego '34.34' se procesa
+                        normalmente en la siguiente iteración
         """
         lin = self._linea
         col = self._columna
-        lexema = ""
-        puntos = 0
 
-        while not self._fin() and (self._actual().isdigit() or self._actual() == "."):
-            ch = self._actual()
-            if ch == ".":
-                puntos += 1
-            lexema += self._avanzar()
+        # ── Estado 1: leer parte entera ───────────────────────────────────────
+        entero = ""
+        while not self._fin() and self._actual().isdigit():
+            entero += self._avanzar()
 
-        if puntos == 0:
-            self._tokens.append(Token(NUMERO_ENTERO, lexema, lin, col))
-        elif puntos == 1:
-            self._tokens.append(Token(NUMERO_REAL, lexema, lin, col))
-        else:
-            # más de un punto decimal → número mal formado
-            self._errores.append(ErrorLexico(NUMERO_MAL_FORMADO, lexema, lin, col))
+        # ── Estado 2: ¿hay un punto? ──────────────────────────────────────────
+        if self._fin() or self._actual() != ".":
+            # No hay punto → NUMERO_ENTERO puro
+            self._tokens.append(Token(NUMERO_ENTERO, entero, lin, col))
+            return
+
+        # Hay un punto; guardamos su posición exacta para el error
+        punto_lin = self._linea
+        punto_col = self._columna
+
+        # ── Estado 3: consumir el punto y verificar que sigue un dígito ───────
+        self._avanzar()          # consume '.'
+        sig = self._actual() if not self._fin() else ""
+
+        if not sig.isdigit():
+            # El autómata esperaba un dígito tras el punto pero no llegó
+            # → '32.' se descarta completo como error; la siguiente parte
+            #   ('algo', operador, etc.) se procesa en la siguiente iteración.
+            self._errores.append(
+                ErrorLexico(NUMERO_MAL_FORMADO, entero + ".", punto_lin, punto_col)
+            )
+            return
+
+        # ── Estado 4: leer dígitos de la parte decimal ────────────────────────
+        decimal = ""
+        while not self._fin() and self._actual().isdigit():
+            decimal += self._avanzar()
+
+        # Emitir el número real válido
+        self._tokens.append(Token(NUMERO_REAL, entero + "." + decimal, lin, col))
+
+        # ── Estado 5: ¿viene otro punto inmediatamente? ('34.34.34.34') ───────
+        if not self._fin() and self._actual() == ".":
+            error_lin = self._linea
+            error_col = self._columna
+            self._avanzar()      # consume el punto extra
+            # Solo el '.' es el error; lo que sigue ('34.34') se procesa solo
+            self._errores.append(
+                ErrorLexico(NUMERO_MAL_FORMADO, ".", error_lin, error_col)
+            )
 
     def _leer_identificador(self):
         """

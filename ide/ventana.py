@@ -4,11 +4,11 @@ import os
 import ctypes
 import ctypes.wintypes
 from PySide6.QtWidgets import (
-    QMainWindow, QDockWidget, QTabWidget, QWidget,
-    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar
+    QMainWindow, QDockWidget, QTabWidget, QTabBar, QWidget,
+    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication
 )
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QAction, QActionGroup, QKeySequence
+from PySide6.QtCore import Qt, QSize, QPoint, QMimeData
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QDrag, QPixmap, QPainter
 
 from ide.ui.editor import EditorCodigo
 from ide.ui.panel_tok import PanelTok
@@ -20,6 +20,117 @@ from ide.ui.panel_sal import PanelSal
 from ide.ui.panel_archivos import PanelArchivos
 from ide.servicios.compilador import ServicioCompilador
 from ide.iconos import gestor_ico
+
+
+# ── Tab widget con pestañas arrastrables (tear-off) ──────────────────────────
+
+class TabsArrastrables(QTabWidget):
+    """
+    QTabWidget que permite arrastrar una pestaña fuera de la barra
+    para convertirla en un QDockWidget flotante.
+    Al cerrar el dock flotante, el panel vuelve a esta barra.
+    """
+
+    # Umbral de píxeles que hay que mover para iniciar un tear-off
+    _UMBRAL_DRAG = 30
+
+    def __init__(self, ventana_principal: 'VentanaPrincipal', parent=None):
+        super().__init__(parent)
+        self._win = ventana_principal
+        self._drag_inicio: QPoint | None = None
+        self._drag_tab_idx: int = -1
+        # dock flotante activo por nombre de pestaña → QDockWidget
+        self._docks_flotantes: dict[str, QDockWidget] = {}
+
+        tb = self.tabBar()
+        tb.setMouseTracking(True)
+        tb.installEventFilter(self)
+
+    # ── Event filter en la TabBar ──────────────────────────────────────
+
+    def eventFilter(self, obj, evento):
+        from PySide6.QtCore import QEvent
+        if obj is not self.tabBar():
+            return super().eventFilter(obj, evento)
+
+        t = evento.type()
+        if t == QEvent.MouseButtonPress:
+            if evento.button() == Qt.LeftButton:
+                idx = self.tabBar().tabAt(evento.position().toPoint())
+                if idx >= 0:
+                    self._drag_inicio = evento.globalPosition().toPoint()
+                    self._drag_tab_idx = idx
+
+        elif t == QEvent.MouseMove:
+            if self._drag_inicio is not None and evento.buttons() == Qt.LeftButton:
+                delta = (evento.globalPosition().toPoint() - self._drag_inicio).manhattanLength()
+                if delta >= self._UMBRAL_DRAG:
+                    self._iniciar_tear_off(self._drag_tab_idx)
+                    self._drag_inicio = None
+                    self._drag_tab_idx = -1
+
+        elif t == QEvent.MouseButtonRelease:
+            self._drag_inicio = None
+            self._drag_tab_idx = -1
+
+        return super().eventFilter(obj, evento)
+
+    # ── Tear-off: sacar la pestaña como dock flotante ──────────────────
+
+    _ORDEN = ["Tokens", "Código Intermedio", "Errores", "Salida"]
+
+    def _iniciar_tear_off(self, idx: int):
+        if idx < 0 or idx >= self.count():
+            return
+        titulo = self.tabText(idx)
+        # Evitar dobles docks del mismo panel
+        if titulo in self._docks_flotantes:
+            return
+
+        widget = self.widget(idx)
+        if widget is None:
+            return
+
+        # Quitar la pestaña del tab bar
+        self.removeTab(idx)
+
+        # Crear dock flotante
+        dock = QDockWidget(titulo, self._win)
+        dock.setWidget(widget)
+        dock.setAllowedAreas(Qt.NoDockWidgetArea)   # sólo flotante, nunca re-acopla
+        from PySide6.QtGui import QCursor
+        cursor_pos = QCursor.pos()
+        dock.move(cursor_pos.x() - 50, cursor_pos.y() - 20)
+        dock.resize(600, 300)
+        self._win.addDockWidget(Qt.BottomDockWidgetArea, dock)
+        dock.setFloating(True)
+        dock.show()
+
+        self._docks_flotantes[titulo] = dock
+
+        # Cerrar con el botón X → devolver al tab bar
+        dock.closeEvent = lambda ev, t=titulo, w=widget, d=dock: \
+            self._devolver_panel(ev, t, w, d)
+
+    def _devolver_panel(self, evento, titulo: str, widget: QWidget, dock: QDockWidget):
+        """Devuelve el panel al tab bar en su posición original."""
+        evento.accept()
+        # Desvincular el widget del dock ANTES de destruirlo
+        dock.setWidget(None)
+        self._win.removeDockWidget(dock)
+        self._docks_flotantes.pop(titulo, None)
+
+        # Calcular posición de reinserción según el orden original
+        pos = self._ORDEN.index(titulo) if titulo in self._ORDEN else self.count()
+        insert_at = 0
+        for nombre in self._ORDEN[:pos]:
+            for i in range(self.count()):
+                if self.tabText(i) == nombre:
+                    insert_at = i + 1
+                    break
+        self.insertTab(insert_at, widget, titulo)
+        self.setCurrentIndex(insert_at)
+
 
 
 # ── Utilidad: colorear barra de título (Windows 10/11) ────────────────────────
@@ -216,6 +327,14 @@ class VentanaPrincipal(QMainWindow):
 
         m_ver.addSeparator()
 
+        # ── Zoom del editor ──
+        m_zoom = m_ver.addMenu("&Zoom Editor")
+        self._acc_zoom_in    = self._accion("Acercar (+)",    "Ctrl+=", m_zoom)
+        self._acc_zoom_out   = self._accion("Alejar (-)",     "Ctrl+-", m_zoom)
+        self._acc_zoom_reset = self._accion("Tamaño normal",  "Ctrl+0", m_zoom)
+
+        m_ver.addSeparator()
+
         # ── Tema ──
         m_tema = m_ver.addMenu("&Tema")
 
@@ -325,7 +444,7 @@ class VentanaPrincipal(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self._dock_der)
 
         # ── Abajo: Tokens, IR, Errores, Salida ──
-        self._tabs_abj = QTabWidget()
+        self._tabs_abj = TabsArrastrables(self)
         self._tabs_abj.addTab(self._p_tok, "Tokens")
         self._tabs_abj.addTab(self._p_ir,  "Código Intermedio")
         self._tabs_abj.addTab(self._p_err, "Errores")
@@ -360,6 +479,11 @@ class VentanaPrincipal(QMainWindow):
         self._acc_ejec.triggered.connect(lambda: self._compilar("run"))
         self._acc_todo.triggered.connect(lambda: self._compilar("run"))
 
+        # Zoom editor
+        self._acc_zoom_in.triggered.connect(self._zoom_in_editor)
+        self._acc_zoom_out.triggered.connect(self._zoom_out_editor)
+        self._acc_zoom_reset.triggered.connect(self._zoom_reset_editor)
+
         # Pestañas del editor
         self._tabs_editor.tabCloseRequested.connect(self._cerrar_tab)
         self._tabs_editor.currentChanged.connect(self._tab_cambiado)
@@ -370,12 +494,32 @@ class VentanaPrincipal(QMainWindow):
         # Panel de errores → navegar al editor
         self._p_err.ir_a_linea.connect(self._ir_a_linea_activa)
         self._p_err.ir_a_linea.connect(
-            lambda n: self._tabs_abj.setCurrentWidget(self._p_err)
+            lambda n: self._mostrar_panel(self._p_err)
         )
 
     def _ir_a_linea_activa(self, n: int):
         if self._editor:
             self._editor.ir_a_linea(n)
+
+    # ── Zoom del editor ────────────────────────────────────────────────
+
+    def _zoom_in_editor(self):
+        if self._editor:
+            self._editor.zoom_in()
+
+    def _zoom_out_editor(self):
+        if self._editor:
+            self._editor.zoom_out()
+
+    def _zoom_reset_editor(self):
+        if self._editor:
+            self._editor.zoom_reset()
+
+    def _mostrar_panel(self, panel: QWidget):
+        """Cambia la pestaña activa al panel dado, sólo si no está flotando."""
+        # indexOf devuelve -1 cuando el widget no está en el tab bar
+        if self._tabs_abj.indexOf(panel) >= 0:
+            self._tabs_abj.setCurrentWidget(panel)
 
     def actualizar_check_tema(self, nombre: str):
         """Marca el tema activo en el menú Ver → Tema."""
@@ -537,7 +681,7 @@ class VentanaPrincipal(QMainWindow):
             self._p_tok.cargar(res.tok)
         if res.err:
             self._p_err.cargar(res.err)
-            self._tabs_abj.setCurrentWidget(self._p_err)
+            self._mostrar_panel(self._p_err)
         if res.sim:
             self._p_sim.cargar(res.sim)
         if res.arb:
@@ -547,21 +691,27 @@ class VentanaPrincipal(QMainWindow):
         if res.sal:
             self._p_sal.cargar(res.sal)
 
-        # Cambiar al tab más relevante
+        # Cambiar al tab más relevante (sólo si el panel no está flotando)
         if fase == "lexical":
-            self._tabs_abj.setCurrentWidget(self._p_tok)
+            self._mostrar_panel(self._p_tok)
         elif fase in ("syntax", "semantic"):
-            self._tabs_abj.setCurrentWidget(self._p_tok)
+            self._mostrar_panel(self._p_tok)
         elif fase == "ir":
-            self._tabs_abj.setCurrentWidget(self._p_ir)
+            self._mostrar_panel(self._p_ir)
         elif fase == "run":
-            self._tabs_abj.setCurrentWidget(self._p_sal)
+            self._mostrar_panel(self._p_sal)
 
         n_err = len(res.err)
         if n_err:
             self._set_estado(f"Compilación completada con {n_err} error(es)")
         else:
             self._set_estado("Compilación exitosa ✓")
+
+        # Subrayar errores léxicos en el editor
+        if self._editor and fase == "lexical" and res.err:
+            self._editor.marcar_errores(res.err)
+        elif self._editor and fase == "lexical":
+            self._editor.limpiar_errores()
 
     def _limpiar_paneles(self):
         self._p_tok.limpiar()
@@ -570,6 +720,9 @@ class VentanaPrincipal(QMainWindow):
         self._p_arb.limpiar()
         self._p_ir.limpiar()
         self._p_sal.limpiar()
+        # Quitar subrayados de error del editor activo
+        if self._editor:
+            self._editor.limpiar_errores()
 
     # ── Helpers ───────────────────────────────────────────────────────
 
