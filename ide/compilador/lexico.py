@@ -267,9 +267,7 @@ class Lexer:
         sig = self._actual() if not self._fin() else ""
 
         if not sig.isdigit():
-            # El autómata esperaba un dígito tras el punto pero no llegó
-            # → '32.' se descarta completo como error; la siguiente parte
-            #   ('algo', operador, etc.) se procesa en la siguiente iteración.
+            
             self._errores.append(
                 ErrorLexico(NUMERO_MAL_FORMADO, entero + ".", punto_lin, punto_col)
             )
