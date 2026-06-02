@@ -5,6 +5,7 @@
 #   lista_declaracion → declaracion*
 #   declaracion       → declaracion_variable | sentencia
 #   declaracion_variable → tipo identificador [= expresion] {, identificador [= expresion]} ;
+#                          Árbol: nodo padre = "Decl: tipo", hijos = "Var: id" [con expr como hijo si hay init]
 #   tipo              → int | float | bool
 #   lista_sentencias  → sentencia*
 #   sentencia         → seleccion | iteracion | repeticion | sent_in | sent_out | asignacion
@@ -256,38 +257,51 @@ class Parser:
 
     # ── declaracion_variable ──────────────────────────────────────────────────
 
-    def _declaracion_variable(self) -> List[NodoArb]:
+    def _declaracion_variable(self) -> Optional[NodoArb]:
         """
         declaracion_variable → tipo id [= expr] {, id [= expr]} ;
+
+        Genera un único nodo padre con la etiqueta del tipo (p.ej. "Decl: int")
+        y un hijo por cada identificador declarado.  Si una variable tiene
+        inicialización, el nodo del identificador lleva la expresión como hijo.
         """
         tipo_tok = self._avanzar()   # consume int / float / bool
         tipo = tipo_tok.valor
-        nodos: List[NodoArb] = []
+
+        # Nodo padre que representa la declaración completa del tipo
+        nodo_padre = NodoArb(
+            etiqueta=f"Decl: {tipo}",
+            linea=tipo_tok.linea,
+            tipo_nodo="decl",
+        )
 
         if not self._es(IDENTIFICADOR):
             self._error(f"Se esperaba un identificador después de '{tipo}'")
             self._recuperar_hasta(";")
             if self._es(SIMBOLO, ";"):
                 self._avanzar()
-            return nodos
+            return None
 
         while True:
             if not self._es(IDENTIFICADOR):
                 self._error("Se esperaba un identificador")
                 break
             id_tok = self._avanzar()
-            nodo = NodoArb(
-                etiqueta=f"Decl: {tipo} {id_tok.valor}",
+
+            # Nodo hijo: representa cada variable declarada
+            nodo_var = NodoArb(
+                etiqueta=f"Var: {id_tok.valor}",
                 linea=id_tok.linea,
                 tipo_nodo="decl",
             )
-            # inicialización opcional
+            # Inicialización opcional: la expresión se agrega como hijo de la variable
             if self._es(ASIGNACION, "="):
                 self._avanzar()
                 expr = self._expresion()
                 if expr:
-                    nodo.hijos.append(expr)
-            nodos.append(nodo)
+                    nodo_var.hijos.append(expr)
+
+            nodo_padre.hijos.append(nodo_var)
 
             if self._es(SIMBOLO, ","):
                 self._avanzar()   # consume ',' → siguiente id
@@ -299,7 +313,7 @@ class Parser:
         else:
             self._avanzar()
 
-        return nodos
+        return nodo_padre
 
     # ── lista_sentencias ──────────────────────────────────────────────────────
 
