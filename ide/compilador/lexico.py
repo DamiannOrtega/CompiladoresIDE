@@ -11,16 +11,25 @@ from ide.compilador.tokens import (
     NUMERO_ENTERO, NUMERO_REAL,
     IDENTIFICADOR, PALABRA_RESERVADA,
     OPERADOR_ARITMETICO, OPERADOR_RELACIONAL, OPERADOR_LOGICO,
-    SIMBOLO, ASIGNACION,
+    SIMBOLO, ASIGNACION, CADENA, OPERADOR_IO,
     PALABRAS_RESERVADAS,
     OPERADORES_ARITMETICOS_DOBLES, OPERADORES_RELACIONALES,
-    OPERADORES_LOGICOS_DOBLES,
+    OPERADORES_LOGICOS_DOBLES, OPERADORES_IO,
     OPERADORES_ARITMETICOS_SIMPLES, OPERADORES_LOGICOS_SIMPLES,
     SIMBOLOS,
 )
 from ide.compilador.errores import (
     ErrorLexico,
     CARACTER_INVALIDO, NUMERO_MAL_FORMADO, COMENTARIO_NO_CERRADO,
+    CADENA_NO_CERRADA,
+)
+
+# Todos los operadores dobles reconocidos
+_TODOS_DOBLES = (
+    OPERADORES_ARITMETICOS_DOBLES
+    | OPERADORES_RELACIONALES
+    | OPERADORES_LOGICOS_DOBLES
+    | OPERADORES_IO
 )
 
 
@@ -66,7 +75,7 @@ class Lexer:
         """
         Busca el siguiente carácter no-blanco a partir de 'desde' posiciones
         adelante. Retorna (caracter, offset_real) o ('', -1) si no encuentra.
-        Los blancos considerados son: espacio, tab, \r, \n.
+        Los blancos considerados son: espacio, tab, \\r, \\n.
         """
         idx = self._pos + desde
         while idx < len(self._texto):
@@ -114,6 +123,11 @@ class Lexer:
             self._leer_comentario_bloque()
             return
 
+        # ── Cadena literal: "..." ─────────────────────────────────────────
+        if ch == '"':
+            self._leer_cadena()
+            return
+
         # ── Números ───────────────────────────────────────────────────────
         if ch.isdigit():
             self._leer_numero()
@@ -133,8 +147,6 @@ class Lexer:
         sig_nb, offset_nb = self._ver_sin_blancos(1)
         doble_nb = ch + sig_nb
 
-        # Determinamos qué "doble" usar: primero el inmediato (sin blancos),
-        # luego el que salta blancos.
         def _intentar_doble(doble: str, offset: int) -> bool:
             """Registra el operador doble consumiendo 'offset+1' chars totales."""
             col = self._columna
@@ -146,15 +158,17 @@ class Lexer:
                 self._tokens.append(Token(OPERADOR_RELACIONAL, doble, lin, col))
             elif doble in OPERADORES_LOGICOS_DOBLES:
                 self._tokens.append(Token(OPERADOR_LOGICO, doble, lin, col))
+            elif doble in OPERADORES_IO:
+                self._tokens.append(Token(OPERADOR_IO, doble, lin, col))
             return True
 
         # Caso 1: el siguiente carácter inmediato forma operador doble
-        if doble_inmediato in OPERADORES_ARITMETICOS_DOBLES | OPERADORES_RELACIONALES | OPERADORES_LOGICOS_DOBLES:
+        if doble_inmediato in _TODOS_DOBLES:
             _intentar_doble(doble_inmediato, 1)
             return
 
         # Caso 2: hay blancos entre los dos caracteres pero juntos forman doble
-        if offset_nb > 1 and doble_nb in OPERADORES_ARITMETICOS_DOBLES | OPERADORES_RELACIONALES | OPERADORES_LOGICOS_DOBLES:
+        if offset_nb > 1 and doble_nb in _TODOS_DOBLES:
             _intentar_doble(doble_nb, offset_nb)
             return
 
@@ -230,6 +244,31 @@ class Lexer:
         if not cerrado:
             self._errores.append(ErrorLexico(COMENTARIO_NO_CERRADO, lexema, lin, col))
 
+    def _leer_cadena(self):
+        """
+        Consume una cadena entre comillas dobles: "texto"
+        Produce un token CADENA con el valor completo incluyendo comillas.
+        Si la cadena no se cierra antes del fin de línea/archivo → ErrorLexico.
+        """
+        lin = self._linea
+        col = self._columna
+        self._avanzar()  # consume la comilla de apertura "
+        lexema = '"'
+        cerrada = False
+        while not self._fin():
+            ch = self._actual()
+            if ch == '"':
+                lexema += self._avanzar()   # consume comilla de cierre
+                cerrada = True
+                break
+            if ch == "\n":
+                break   # cadena sin cerrar en esta línea
+            lexema += self._avanzar()
+        if cerrada:
+            self._tokens.append(Token(CADENA, lexema, lin, col))
+        else:
+            self._errores.append(ErrorLexico(CADENA_NO_CERRADA, lexema, lin, col))
+
     def _leer_numero(self):
         """
         Consume un número entero o real modelando el autómata correctamente.
@@ -267,7 +306,6 @@ class Lexer:
         sig = self._actual() if not self._fin() else ""
 
         if not sig.isdigit():
-            
             self._errores.append(
                 ErrorLexico(NUMERO_MAL_FORMADO, entero + ".", punto_lin, punto_col)
             )

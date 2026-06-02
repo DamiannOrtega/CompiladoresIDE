@@ -73,8 +73,33 @@ class PanelArchivos(QWidget):
         lay.addWidget(self._vista)
 
     def set_directorio(self, ruta: str):
+        """
+        Cambia la carpeta raíz del explorador.
+        Solo se debe llamar una vez al inicio o al abrir una nueva carpeta de proyecto;
+        NO debe llamarse al abrir archivos individuales.
+        """
+        ruta = os.path.normpath(ruta)
         self._modelo.setRootPath(ruta)
         self._vista.setRootIndex(self._modelo.index(ruta))
+
+    def seleccionar_archivo(self, ruta: str):
+        """
+        Resalta y hace scroll hasta el archivo indicado SIN cambiar la raíz del árbol.
+        Si el archivo no está dentro de la raíz actual no hace nada.
+        """
+        ruta = os.path.normpath(ruta)
+        raiz = os.path.normpath(self._modelo.rootPath())
+        if not ruta.startswith(raiz):
+            return   # fuera del proyecto; no tocar la vista
+
+        indice = self._modelo.index(ruta)
+        if not indice.isValid():
+            return
+
+        # Expandir los padres necesarios para que el ítem sea visible
+        self._vista.expand(indice.parent())
+        self._vista.setCurrentIndex(indice)
+        self._vista.scrollTo(indice)
 
     def set_tema(self, paleta: dict):
         """Actualiza el ícono .src según el color del tema activo."""

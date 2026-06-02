@@ -1,8 +1,9 @@
 # compilador/__init__.py
-# Expone la función principal del analizador léxico.
+# Expone las funciones principales del compilador.
 
 from ide.compilador.lexico import analyze
+from ide.compilador.sintatico import parse
 from ide.compilador.tokens import Token
-from ide.compilador.errores import ErrorLexico
+from ide.compilador.errores import ErrorLexico, ErrorSintactico
 
-__all__ = ["analyze", "Token", "ErrorLexico"]
+__all__ = ["analyze", "parse", "Token", "ErrorLexico", "ErrorSintactico"]

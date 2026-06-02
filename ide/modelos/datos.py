@@ -33,9 +33,11 @@ class Sim:
 
 @dataclass
 class NodoArb:
-    """Nodo del árbol sintáctico."""
+    """Nodo del árbol sintáctico abstracto (AST)."""
     etiqueta: str
     hijos: List["NodoArb"] = field(default_factory=list)
+    linea: int = 0          # línea en el fuente donde se origina
+    tipo_nodo: str = ""     # "prog" | "decl" | "stmt" | "bloque" | "expr"
 
 
 @dataclass

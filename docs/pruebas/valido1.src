@@ -1,0 +1,35 @@
+// Prueba válida 1 — Declaraciones, condicionales, ciclo while, cin/cout
+// Cubre: int/float, if-then-else-end, while-end, cin >>, cout <<
+main {
+    int x;
+    int y;
+    int mayor;
+    float promedio;
+
+    cin >> x;
+    cin >> y;
+
+    if x > y then
+        mayor = x;
+        cout << "El mayor es x";
+    else
+        mayor = y;
+        cout << "El mayor es y";
+    end
+
+    promedio = (x + y) / 2;
+    cout << "Promedio: " << promedio;
+
+    int contador;
+    contador = 0;
+
+    while contador < 10
+        contador = contador + 1;
+    end
+
+    cout << "Contador final: " << contador;
+
+    if mayor >= 100 then
+        cout << "El mayor es grande";
+    end
+}

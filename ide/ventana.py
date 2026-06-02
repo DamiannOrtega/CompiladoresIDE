@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QDockWidget, QTabWidget, QTabBar, QWidget,
     QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication
 )
-from PySide6.QtCore import Qt, QSize, QPoint, QMimeData
+from PySide6.QtCore import Qt, QSize, QPoint, QMimeData, QObject, QThread, Signal
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QDrag, QPixmap, QPainter
 
 from ide.ui.editor import EditorCodigo
@@ -20,6 +20,36 @@ from ide.ui.panel_sal import PanelSal
 from ide.ui.panel_archivos import PanelArchivos
 from ide.servicios.compilador import ServicioCompilador
 from ide.iconos import gestor_ico
+
+
+# ── Worker de compilación en hilo de fondo ─────────────────────────────────────────
+
+class _WorkerCompilacion(QObject):
+    """
+    Ejecuta self._servicio.compilar() en un hilo separado.
+    Emite 'terminado(fase, res)' cuando termina.
+    La señal incluye la fase para poder conectarse a un método real
+    (no a un lambda), lo que permite que Qt use AutoConnection y
+    asegure que el callback se ejecute en el hilo principal.
+    """
+    terminado = Signal(str, object)   # fase, ResultadoCompilacion
+
+    def __init__(self, servicio, fase: str, ruta: str, texto: str):
+        super().__init__()
+        self._servicio = servicio
+        self._fase     = fase
+        self._ruta     = ruta
+        self._texto    = texto
+
+    def ejecutar(self):
+        try:
+            res = self._servicio.compilar(self._fase, self._ruta, self._texto)
+        except Exception as ex:
+            from ide.modelos.datos import ResultadoCompilacion, Err
+            res = ResultadoCompilacion(fase=self._fase)
+            res.err = [Err(tipo="error interno", linea=0, col=0,
+                          msg=f"Error inesperado en el compilador: {ex}")]
+        self.terminado.emit(self._fase, res)
 
 
 # ── Tab widget con pestañas arrastrables (tear-off) ──────────────────────────
@@ -434,12 +464,12 @@ class VentanaPrincipal(QMainWindow):
         )
         self._p_semant_info.setObjectName("semant_placeholder")
 
-        tabs_der = QTabWidget()
-        tabs_der.addTab(self._p_arb,         "Árbol Sintáctico")
-        tabs_der.addTab(self._p_semant_info, "Semántico")
+        self._tabs_der = QTabWidget()
+        self._tabs_der.addTab(self._p_arb,         "Árbol Sintáctico")
+        self._tabs_der.addTab(self._p_semant_info, "Semántico")
 
         self._dock_der = QDockWidget("Análisis", self)
-        self._dock_der.setWidget(tabs_der)
+        self._dock_der.setWidget(self._tabs_der)
         self._dock_der.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self._dock_der)
 
@@ -457,7 +487,7 @@ class VentanaPrincipal(QMainWindow):
 
         # Tamaños iniciales
         self.resizeDocks([self._dock_izq], [220], Qt.Horizontal)
-        self.resizeDocks([self._dock_der], [260], Qt.Horizontal)
+        self.resizeDocks([self._dock_der], [400], Qt.Horizontal)
         self.resizeDocks([self._dock_abj], [200], Qt.Vertical)
 
     # ── Conexión de señales ───────────────────────────────────────────
@@ -624,7 +654,7 @@ class VentanaPrincipal(QMainWindow):
             editor._modificado = False
             self._actualizar_titulo()
             self._set_estado(f"Abierto: {os.path.basename(ruta)}")
-            self._p_arch.set_directorio(os.path.dirname(ruta))
+            self._p_arch.seleccionar_archivo(ruta)
         except Exception as ex:
             QMessageBox.critical(self, "Error", f"No se pudo abrir el archivo:\n{ex}")
 
@@ -667,16 +697,48 @@ class VentanaPrincipal(QMainWindow):
             return True
         return resp == QMessageBox.Discard
 
-    # ── Compilación ───────────────────────────────────────────────────
+    # ── Compilación (en hilo de fondo) ─────────────────────────────────
 
     def _compilar(self, fase: str):
+        """Lanza la compilación en un QThread para no bloquear la UI."""
+        if not self._editor:
+            return
+
+        # Evitar doble compilación simultánea (bandera simple, sin isRunning())
+        if getattr(self, "_compilando", False):
+            return
+        self._compilando = True
+
         self._set_estado(f"Compilando ({fase})...")
         self._limpiar_paneles()
+        self._acc_lexico.setEnabled(False)
+        self._acc_sintac.setEnabled(False)
 
-        texto_editor = self._editor.toPlainText() if self._editor else ""
-        res = self._servicio.compilar(fase, self._ruta_arch or "", texto_editor)
+        texto = self._editor.toPlainText()
+        ruta  = self._ruta_arch or ""
 
-        # Poblar paneles según la fase
+        # Reutilizar o crear hilo (NO usar deleteLater para evitar referencia inválida)
+        self._hilo_compilacion  = QThread(self)
+        self._worker_compilacion = _WorkerCompilacion(self._servicio, fase, ruta, texto)
+        self._worker_compilacion.moveToThread(self._hilo_compilacion)
+
+        # Conectar al método real (no lambda) → Qt usa AutoConnection → queued entre hilos
+        self._hilo_compilacion.started.connect(self._worker_compilacion.ejecutar)
+        self._worker_compilacion.terminado.connect(self._compilacion_terminada)
+        self._worker_compilacion.terminado.connect(self._hilo_compilacion.quit)
+        self._hilo_compilacion.finished.connect(self._worker_compilacion.deleteLater)
+
+        self._hilo_compilacion.start()
+
+    def _compilacion_terminada(self, fase: str, res):
+        """
+        Slot ejecutado en el hilo PRINCIPAL gracias a AutoConnection.
+        Actualiza la UI con el resultado de la compilación.
+        """
+        self._compilando = False
+        self._acc_lexico.setEnabled(True)
+        self._acc_sintac.setEnabled(True)
+
         if res.tok:
             self._p_tok.cargar(res.tok)
         if res.err:
@@ -685,16 +747,23 @@ class VentanaPrincipal(QMainWindow):
         if res.sim:
             self._p_sim.cargar(res.sim)
         if res.arb:
-            self._p_arb.cargar(res.arb)
+            # Filtrar solo errores sintácticos para el panel del árbol
+            errores_sint = [e for e in res.err if getattr(e, "tipo", "") == "sintáctico"]
+            self._p_arb.cargar(res.arb, errores_sint)
         if res.ir:
             self._p_ir.cargar(res.ir)
         if res.sal:
             self._p_sal.cargar(res.sal)
 
-        # Cambiar al tab más relevante (sólo si el panel no está flotando)
         if fase == "lexical":
             self._mostrar_panel(self._p_tok)
-        elif fase in ("syntax", "semantic"):
+        elif fase == "syntax":
+            self._mostrar_panel(self._p_tok)
+            if res.arb is not None:
+                self._dock_der.setVisible(True)
+                self._dock_der.raise_()
+                self._tabs_der.setCurrentWidget(self._p_arb)
+        elif fase == "semantic":
             self._mostrar_panel(self._p_tok)
         elif fase == "ir":
             self._mostrar_panel(self._p_ir)
@@ -705,9 +774,8 @@ class VentanaPrincipal(QMainWindow):
         if n_err:
             self._set_estado(f"Compilación completada con {n_err} error(es)")
         else:
-            self._set_estado("Compilación exitosa ✓")
+            self._set_estado("Compilación exitosa")
 
-        # Subrayar errores léxicos en el editor
         if self._editor and fase == "lexical" and res.err:
             self._editor.marcar_errores(res.err)
         elif self._editor and fase == "lexical":

@@ -1,0 +1,63 @@
+// Prueba válida 2 — do-while, operadores lógicos, potencia, ++/--
+// Cubre: bool, true/false, do-while, !, operadores aritméticos avanzados
+main {
+    int a;
+    int b;
+    int c;
+    float resultado;
+    bool activo;
+
+    a = 5;
+    b = 3;
+    c = 0;
+    activo = true;
+
+    // Ciclo do-while: acumula mientras b > 0
+    do
+        c = c + 1;
+        b--;
+    while b > 0
+
+    // Potenciación y suma
+    resultado = a ^ 2 + b;
+
+    // Condicional con booleano
+    if activo == true then
+        cout << "Sistema activo";
+    end
+
+    // Nested if dentro de while
+    while a != 0
+        if a > 0 then
+            a = a - 1;
+        else
+            a = a + 1;
+        end
+    end
+
+    // Declaraciones adicionales y cálculo
+    int suma;
+    int i;
+    suma = 0;
+    i = 1;
+
+    while i <= 5
+        suma = suma + i * i;
+        i++;
+    end
+
+    cout << "Suma de cuadrados: " << suma;
+
+    // Operador lógico NOT
+    if !activo then
+        cout << "Sistema inactivo";
+    end
+
+    // Operadores relacionales
+    bool grande
+    grande = (suma > 50) && (c != 0);
+
+    if grande == true then
+        cout << "Valor grande: " << suma;
+    end
+}

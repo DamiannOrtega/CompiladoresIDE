@@ -15,13 +15,15 @@ OPERADOR_LOGICO  = "OPERADOR_LOGICO"
 SIMBOLO          = "SIMBOLO"
 ASIGNACION       = "ASIGNACION"
 COMENTARIO       = "COMENTARIO"
+CADENA           = "CADENA"
+OPERADOR_IO      = "OPERADOR_IO"
 
 
 # ── Palabras reservadas del lenguaje ─────────────────────────────────────────
 
 PALABRAS_RESERVADAS = {
-    "if", "else", "end", "do", "while",
-    "switch", "case", "int", "float",
+    "if", "then", "else", "end", "do", "while",
+    "switch", "case", "int", "float", "bool", "true", "false",
     "main", "cin", "cout",
 }
 
@@ -34,6 +36,8 @@ OPERADORES_RELACIONALES = {"<=", ">=", "!=", "=="}
 
 OPERADORES_LOGICOS_DOBLES = {"&&", "||"}
 
+OPERADORES_IO = {"<<", ">>"}
+
 
 # ── Operadores y símbolos de un carácter ─────────────────────────────────────
 
@@ -41,7 +45,7 @@ OPERADORES_ARITMETICOS_SIMPLES = {"+", "-", "*", "/", "%", "^"}
 
 OPERADORES_LOGICOS_SIMPLES = {"!"}
 
-SIMBOLOS = {"(", ")", "{", "}", ",", ";", '"', "'"}
+SIMBOLOS = {"(", ")", "{", "}", ",", ";"}
 
 
 # ── Estructura de un token ────────────────────────────────────────────────────

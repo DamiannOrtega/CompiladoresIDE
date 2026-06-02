@@ -1,0 +1,29 @@
+// Prueba con errores sintácticos — 6 errores detectables
+// Error 1 (línea 4):  int x       → falta ';' al final de la declaración
+// Error 2 (línea 9):  cin >> ;    → falta identificador después de '>>'
+// Error 3 (línea 12): if...then   → falta 'end' al cerrar el bloque if
+// Error 4 (línea 16): while...    → falta 'end' al cerrar el bloque while
+// Error 5 (línea 19): z = x + ;  → falta operando derecho del '+'
+// Error 6 (línea 21): cout << y   → falta ';' al final
+main {
+    int x
+    float y;
+    int z;
+
+    x = 10;
+    y = 3.14;
+
+    cin >> ;
+
+    if x > 5 then
+        z = x * 2;
+        cout << "Valor calculado";
+
+    while y > 0
+        y = y - 1;
+
+    z = x + ;
+
+    cout << "Resultado: " << z
+
+}
