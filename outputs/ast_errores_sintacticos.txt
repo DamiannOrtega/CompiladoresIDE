@@ -1,0 +1,32 @@
+Errores Sintácticos Detectados
+Total: 7 error(es)
+────────────────────────────────────────────────
+
+[1] Línea 10, Columna 5
+    Tipo    : sintáctico
+    Mensaje : Se esperaba ';' al final de la declaración de 'int'
+
+[2] Línea 16, Columna 12
+    Tipo    : sintáctico
+    Mensaje : Se esperaba un identificador después de 'cin >>'
+
+[3] Línea 25, Columna 13
+    Tipo    : sintáctico
+    Mensaje : Expresión inválida: se encontró ';' (SIMBOLO)
+
+[4] Línea 27, Columna 5
+    Tipo    : sintáctico
+    Mensaje : Se esperaba ';' al final de la asignación
+
+[5] Línea 29, Columna 1
+    Tipo    : sintáctico
+    Mensaje : Se esperaba ';' al final de 'cout'
+
+[6] Línea 29, Columna 1
+    Tipo    : sintáctico
+    Mensaje : Se esperaba 'end' para cerrar el bloque 'while'
+
+[7] Línea 29, Columna 1
+    Tipo    : sintáctico
+    Mensaje : Se esperaba 'end' para cerrar el bloque 'if'
+
