@@ -1,0 +1,14 @@
+Tabla de Simbolos
+Archivo fuente: testSintactico.src
+----------------------------------------------------------------------------------------
+Nombre          Tipo     Ambito   Dir. Memoria   Tam(B)   Lin. Decl   Referencias       
+----------------------------------------------------------------------------------------
+x               int      main     0 (0x0000)     4        3           7, 13, 18, 22, 30, 34, 35, 41
+y               int      main     4 (0x0004)     4        3           8, 9, 10, 14, 19, 27, 33, 37, 39, 44
+z               int      main     8 (0x0008)     4        3           9, 15, 36, 40     
+a               float    main     12 (0x000C)    4        4           12, 19            
+b               float    main     16 (0x0010)    4        4           16, 23, 25        
+c               float    main     20 (0x0014)    4        4           —                 
+bandera         bool     main     24 (0x0018)    1        5           22                
+----------------------------------------------------------------------------------------
+Total de identificadores registrados: 7

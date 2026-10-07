@@ -1,0 +1,99 @@
+[
+  {
+    "nombre": "x",
+    "tipo": "int",
+    "ambito": "main",
+    "linea_declaracion": 3,
+    "desplazamiento": 0,
+    "tam_bytes": 4,
+    "referencias": [
+      7,
+      13,
+      18,
+      22,
+      30,
+      34,
+      35,
+      41
+    ]
+  },
+  {
+    "nombre": "y",
+    "tipo": "int",
+    "ambito": "main",
+    "linea_declaracion": 3,
+    "desplazamiento": 4,
+    "tam_bytes": 4,
+    "referencias": [
+      8,
+      9,
+      10,
+      14,
+      19,
+      27,
+      33,
+      37,
+      39,
+      44
+    ]
+  },
+  {
+    "nombre": "z",
+    "tipo": "int",
+    "ambito": "main",
+    "linea_declaracion": 3,
+    "desplazamiento": 8,
+    "tam_bytes": 4,
+    "referencias": [
+      9,
+      15,
+      36,
+      40
+    ]
+  },
+  {
+    "nombre": "a",
+    "tipo": "float",
+    "ambito": "main",
+    "linea_declaracion": 4,
+    "desplazamiento": 12,
+    "tam_bytes": 4,
+    "referencias": [
+      12,
+      19
+    ]
+  },
+  {
+    "nombre": "b",
+    "tipo": "float",
+    "ambito": "main",
+    "linea_declaracion": 4,
+    "desplazamiento": 16,
+    "tam_bytes": 4,
+    "referencias": [
+      16,
+      23,
+      25
+    ]
+  },
+  {
+    "nombre": "c",
+    "tipo": "float",
+    "ambito": "main",
+    "linea_declaracion": 4,
+    "desplazamiento": 20,
+    "tam_bytes": 4,
+    "referencias": []
+  },
+  {
+    "nombre": "bandera",
+    "tipo": "bool",
+    "ambito": "main",
+    "linea_declaracion": 5,
+    "desplazamiento": 24,
+    "tam_bytes": 1,
+    "referencias": [
+      22
+    ]
+  }
+]

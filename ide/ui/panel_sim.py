@@ -9,7 +9,7 @@ from ide.modelos.datos import Sim
 class PanelSim(QWidget):
     """Muestra la tabla de símbolos."""
 
-    COLS = ["Nombre", "Tipo", "Ámbito", "Línea"]
+    COLS = ["Nombre", "Tipo", "Ámbito", "Desplazamiento", "Tam (B)", "Lín. Decl.", "Referencias"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,7 +34,22 @@ class PanelSim(QWidget):
             self._tabla.setItem(fila, 0, QTableWidgetItem(s.nombre))
             self._tabla.setItem(fila, 1, QTableWidgetItem(s.tipo))
             self._tabla.setItem(fila, 2, QTableWidgetItem(s.ambito))
-            self._tabla.setItem(fila, 3, QTableWidgetItem(str(s.linea)))
+
+            desp_item = QTableWidgetItem(f"{s.desplazamiento} (0x{s.desplazamiento:04X})")
+            desp_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self._tabla.setItem(fila, 3, desp_item)
+
+            tam_item = QTableWidgetItem(str(s.tam_bytes))
+            tam_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self._tabla.setItem(fila, 4, tam_item)
+
+            lin_item = QTableWidgetItem(str(s.linea))
+            lin_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self._tabla.setItem(fila, 5, lin_item)
+
+            refs_str = ", ".join(str(r) for r in s.referencias) if s.referencias else "—"
+            self._tabla.setItem(fila, 6, QTableWidgetItem(refs_str))
+
         self._tabla.resizeColumnsToContents()
 
     def limpiar(self):

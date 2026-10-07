@@ -1,0 +1,16 @@
+[
+  {
+    "error": "Inconsistencia de tipos en asignación",
+    "msg": "Inconsistencia de tipos en asignación a 'y': no se puede asignar una expresión de tipo 'float' a la variable entera 'int' sin conversión explícita.",
+    "valor": "y",
+    "linea": 19,
+    "columna": 0
+  },
+  {
+    "error": "Uso indebido de operadores",
+    "msg": "Uso indebido de operador lógico '&&': requiere operandos de tipo 'bool', pero se obtuvo 'int' y 'bool'.",
+    "valor": "&&",
+    "linea": 22,
+    "columna": 0
+  }
+]

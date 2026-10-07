@@ -2,14 +2,21 @@
 # runner.py — Ejecutor de línea de comandos del compilador
 #
 # Uso:
-#   python runner.py <archivo>              → Fase léxica + sintáctica
-#   python runner.py <archivo> --solo-lexico → Solo fase léxica
+#   python runner.py <archivo>                   → Fase léxica + sintáctica + semántica
+#   python runner.py <archivo> --solo-lexico      → Solo fase léxica
+#   python runner.py <archivo> --solo-sintactico  → Fase léxica + sintáctica
 #
 # Salida en outputs/:
 #   tokens.json               Tokens reconocidos
 #   errores_lexicos.json      Errores léxicos (si los hay)
-#   ast.txt                   Árbol sintáctico en texto ASCII (si sin errores léxicos)
+#   ast.txt                   Árbol sintáctico original en texto ASCII
 #   errores_sintacticos.json  Errores sintácticos (si los hay)
+#   errores_sintacticos.txt   Errores sintácticos en formato legible
+#   ast_anotado.txt           Árbol sintáctico con anotaciones semánticas
+#   tabla_simbolos.json       Tabla de símbolos en JSON
+#   tabla_simbolos.txt        Tabla de símbolos formateada en texto
+#   errores_semanticos.json   Errores semánticos en JSON
+#   errores_semanticos.txt    Errores semánticos en formato legible
 
 import sys
 import json
@@ -19,19 +26,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ide.compilador.lexico import analyze
 from ide.compilador.sintatico import parse
+from ide.compilador.semantico import analyze_semantics, ast_anotado_a_texto
 
 
-# ── Renderizador ASCII del AST ────────────────────────────────────────────────
+# ── Renderizador ASCII del AST original ───────────────────────────────────────
 
 def _ast_lineas(nodo, prefijo: str = "", es_ultimo: bool = True) -> list:
-    """
-    Genera lineas de texto del AST en formato arbol ASCII:
-      Programa: main
-      +-- Decl: int x   [L4]
-      +-- Asignar: y    [L8]
-      |   +-- Num: 5   [L8]
-      +-- Si (if)       [L10]
-    """
+    """Genera líneas de texto del AST en formato árbol ASCII."""
     conector  = "+-- "
     sufijo    = f"   [L{nodo.linea}]" if getattr(nodo, "linea", 0) else ""
     lineas    = [prefijo + conector + nodo.etiqueta + sufijo]
@@ -51,16 +52,38 @@ def _ast_a_texto(raiz) -> str:
     return "\n".join(lineas)
 
 
+# ── Formateador de Tabla de Símbolos en Texto ─────────────────────────────────
+
+def _tabla_simbolos_a_texto(simbolos, ruta_entrada: str) -> str:
+    lineas = [
+        f"Tabla de Simbolos",
+        f"Archivo fuente: {ruta_entrada}",
+        "-" * 88,
+        f"{'Nombre':<15} {'Tipo':<8} {'Ambito':<8} {'Dir. Memoria':<14} {'Tam(B)':<8} {'Lin. Decl':<11} {'Referencias':<18}",
+        "-" * 88,
+    ]
+    for s in simbolos:
+        dir_str = f"{s.desplazamiento} (0x{s.desplazamiento:04X})"
+        refs_str = ", ".join(str(r) for r in s.referencias) if s.referencias else "—"
+        lineas.append(
+            f"{s.nombre:<15} {s.tipo:<8} {s.ambito:<8} {dir_str:<14} {s.tam_bytes:<8} {s.linea:<11} {refs_str:<18}"
+        )
+    lineas.append("-" * 88)
+    lineas.append(f"Total de identificadores registrados: {len(simbolos)}\n")
+    return "\n".join(lineas)
+
+
 # ── Punto de entrada ──────────────────────────────────────────────────────────
 
 def main():
-    args       = sys.argv[1:]
-    solo_lexico = "--solo-lexico" in args
-    args       = [a for a in args if not a.startswith("--")]
+    args            = sys.argv[1:]
+    solo_lexico     = "--solo-lexico" in args
+    solo_sintactico = "--solo-sintactico" in args
+    args            = [a for a in args if not a.startswith("--")]
 
     if not args:
-        print("Uso: python runner.py <archivo_fuente> [--solo-lexico]")
-        print("Ejemplo: python runner.py docs/pruebas/valido1.src")
+        print("Uso: python runner.py <archivo_fuente> [--solo-lexico] [--solo-sintactico]")
+        print("Ejemplo: python runner.py testSintactico.src")
         sys.exit(1)
 
     ruta_entrada = args[0]
@@ -78,11 +101,11 @@ def main():
     dir_salida = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
     os.makedirs(dir_salida, exist_ok=True)
 
-    sep = "-" * 56
+    sep = "=" * 60
 
-    # ── Fase 1: Analisis lexico ───────────────────────────────────────────────
+    # ── Fase 1: Análisis léxico ───────────────────────────────────────────────
     print(sep)
-    print(f"Archivo fuente : {ruta_entrada}")
+    print(f"Compilador - Archivo: {ruta_entrada}")
     print(sep)
 
     tokens, errores_lex = analyze(texto)
@@ -123,24 +146,24 @@ def main():
 
     arbol, errores_sint = parse(tokens)
 
-    # ── Guardar AST como texto ASCII ──────────────────────────────────────────
+    # Guardar AST original como texto ASCII
     ruta_ast = os.path.join(dir_salida, "ast.txt")
-    encabezado = (
-        f"Arbol Sintactico Abstracto\n"
+    encabezado_ast = (
+        f"Arbol Sintactico Abstracto (Original)\n"
         f"Archivo: {ruta_entrada}\n"
         f"{'-' * 40}\n"
     )
     with open(ruta_ast, "w", encoding="utf-8") as f:
-        f.write(encabezado)
+        f.write(encabezado_ast)
         f.write(_ast_a_texto(arbol))
         f.write("\n")
 
-    # ── Guardar errores sintácticos como JSON ─────────────────────────────────
+    # Guardar errores sintácticos como JSON
     ruta_err_sint = os.path.join(dir_salida, "errores_sintacticos.json")
     with open(ruta_err_sint, "w", encoding="utf-8") as f:
         json.dump([e.to_dict() for e in errores_sint], f, ensure_ascii=False, indent=2)
 
-    # ── Guardar errores sintácticos como TXT (legible) ───────────────────────
+    # Guardar errores sintácticos como TXT
     ruta_err_txt = os.path.join(dir_salida, "errores_sintacticos.txt")
     with open(ruta_err_txt, "w", encoding="utf-8") as f:
         f.write("Errores Sintacticos Detectados\n")
@@ -162,9 +185,84 @@ def main():
         for e in errores_sint:
             print(f"  [SIN] L{e.linea}:C{e.columna}  {e.msg}")
         if arbol:
-            print(f"  (AST parcial generado - recuperacion de errores activa)")
+            print(f"  (AST parcial generado - recuperacion activa)")
     else:
         print(f"  OK: Programa sintacticamente correcto")
+
+    if solo_sintactico:
+        print(f"\nArchivos generados en: {dir_salida}")
+        print(f"  {os.path.basename(ruta_tok)}")
+        print(f"  {os.path.basename(ruta_err_lex)}")
+        print(f"  {os.path.basename(ruta_ast)}")
+        print(f"  {os.path.basename(ruta_err_sint)}")
+        print(f"  {os.path.basename(ruta_err_txt)}")
+        return
+
+    print()
+
+    # ── Fase 3: Análisis semántico ────────────────────────────────────────────
+    print(f"Fase 3 - Analisis semantico")
+
+    if errores_sint:
+        print("  X Omitido: existen errores sintacticos.")
+        print("    Corrija los errores sintacticos antes de ejecutar el analisis semantico.")
+        return
+
+    arbol_anotado, tabla, errores_sem = analyze_semantics(arbol)
+    simbolos = tabla.obtener_simbolos()
+
+    # Guardar AST Anotado como texto ASCII
+    ruta_ast_anot = os.path.join(dir_salida, "ast_anotado.txt")
+    encabezado_anot = (
+        f"Arbol Sintactico Anotado (Semantico)\n"
+        f"Archivo: {ruta_entrada}\n"
+        f"{'-' * 40}\n"
+    )
+    with open(ruta_ast_anot, "w", encoding="utf-8") as f:
+        f.write(encabezado_anot)
+        f.write(ast_anotado_a_texto(arbol_anotado))
+        f.write("\n")
+
+    # Guardar Tabla de Símbolos en JSON
+    ruta_sim_json = os.path.join(dir_salida, "tabla_simbolos.json")
+    with open(ruta_sim_json, "w", encoding="utf-8") as f:
+        json.dump([s.to_dict() for s in simbolos], f, ensure_ascii=False, indent=2)
+
+    # Guardar Tabla de Símbolos en TXT
+    ruta_sim_txt = os.path.join(dir_salida, "tabla_simbolos.txt")
+    with open(ruta_sim_txt, "w", encoding="utf-8") as f:
+        f.write(_tabla_simbolos_a_texto(simbolos, ruta_entrada))
+
+    # Guardar Errores Semánticos en JSON
+    ruta_err_sem_json = os.path.join(dir_salida, "errores_semanticos.json")
+    with open(ruta_err_sem_json, "w", encoding="utf-8") as f:
+        json.dump([e.to_dict() for e in errores_sem], f, ensure_ascii=False, indent=2)
+
+    # Guardar Errores Semánticos en TXT
+    ruta_err_sem_txt = os.path.join(dir_salida, "errores_semanticos.txt")
+    with open(ruta_err_sem_txt, "w", encoding="utf-8") as f:
+        f.write("Errores Semanticos Detectados\n")
+        f.write(f"Archivo fuente: {ruta_entrada}\n")
+        f.write("-" * 52 + "\n")
+        if errores_sem:
+            f.write(f"Total: {len(errores_sem)} error(es) semantico(s)\n\n")
+            for i, e in enumerate(errores_sem, 1):
+                f.write(f"[{i}] Linea {e.linea}\n")
+                f.write(f"    Tipo    : {e.error}\n")
+                if e.valor:
+                    f.write(f"    Elemento: '{e.valor}'\n")
+                f.write(f"    Mensaje : {e.msg}\n\n")
+        else:
+            f.write("Sin errores semanticos. Programa semanticamente valido.\n")
+
+    print(f"  Simbolos registrados : {len(simbolos)}")
+    print(f"  Errores semanticos   : {len(errores_sem)}")
+
+    if errores_sem:
+        for e in errores_sem:
+            print(f"  [SEM] L{e.linea}  {e.error}: {e.msg}")
+    else:
+        print("  OK: Programa semanticamente valido")
 
     print(f"\nArchivos generados en: {dir_salida}")
     print(f"  {os.path.basename(ruta_tok)}")
@@ -172,6 +270,11 @@ def main():
     print(f"  {os.path.basename(ruta_ast)}")
     print(f"  {os.path.basename(ruta_err_sint)}")
     print(f"  {os.path.basename(ruta_err_txt)}")
+    print(f"  {os.path.basename(ruta_ast_anot)}")
+    print(f"  {os.path.basename(ruta_sim_json)}")
+    print(f"  {os.path.basename(ruta_sim_txt)}")
+    print(f"  {os.path.basename(ruta_err_sem_json)}")
+    print(f"  {os.path.basename(ruta_err_sem_txt)}")
 
 
 if __name__ == "__main__":

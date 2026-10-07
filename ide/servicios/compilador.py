@@ -12,6 +12,7 @@ from ide.modelos.datos import (
 )
 from ide.compilador.lexico import analyze as _analyze_lexico
 from ide.compilador.sintatico import parse as _parse_sintatico
+from ide.compilador.semantico import analyze_semantics as _analyze_semantico
 
 
 class ServicioCompilador:
@@ -96,15 +97,95 @@ class ServicioCompilador:
             ]
             res.arb = arbol
 
-        # ── Fases futuras ─────────────────────────────────────────────────────
+        # ── Fase 3: Análisis semántico ───────────────────────────────────────
         elif fase == "semantic":
-            res.err = [Err(tipo="info", linea=0, col=0,
-                          msg="Análisis semántico aún no implementado.")]
+            src = _cargar_texto()
+
+            # Paso 1: léxico
+            tokens, errores_lex = _analyze_lexico(src)
+            res.tok = [
+                Tok(lexema=t.valor, tipo=t.tipo, linea=t.linea, col=t.columna)
+                for t in tokens
+            ]
+
+            if errores_lex:
+                res.err = [
+                    Err(tipo="léxico", linea=e.linea, col=e.columna,
+                        msg=f"{e.error}: '{e.valor}'")
+                    for e in errores_lex
+                ]
+                res.err.append(Err(
+                    tipo="bloqueo",
+                    linea=0,
+                    col=0,
+                    msg="El análisis semántico no se ejecutó porque existen errores léxicos. Corrija los errores léxicos primero."
+                ))
+                return res
+
+            # Paso 2: sintáctico
+            arbol, errores_sint = _parse_sintatico(tokens)
+            res.arb = arbol
+
+            # Paso 3: semántico (se ejecuta sobre el AST generado incluso con recuperación de errores)
+            if arbol is not None:
+                arbol_anotado, tabla, errores_sem = _analyze_semantico(arbol)
+                res.arb_anotado = arbol_anotado
+                res.sim = tabla.obtener_simbolos()
+                res.err = [
+                    Err(tipo="sintáctico", linea=e.linea, col=e.columna, msg=e.msg)
+                    for e in errores_sint
+                ] + [
+                    Err(tipo="semántico", linea=e.linea, col=e.columna,
+                        msg=f"{e.error}: {e.msg}")
+                    for e in errores_sem
+                ]
+            else:
+                res.err = [
+                    Err(tipo="sintáctico", linea=e.linea, col=e.columna, msg=e.msg)
+                    for e in errores_sint
+                ]
 
         elif fase == "ir":
             res.ir = "-- Generación de código intermedio aún no implementada. --"
 
         elif fase == "run":
-            res.sal = "-- Ejecución aún no implementada. --"
+            # Compilar todo (ejecuta Léxico -> Sintáctico -> Semántico)
+            src = _cargar_texto()
+            tokens, errores_lex = _analyze_lexico(src)
+            res.tok = [
+                Tok(lexema=t.valor, tipo=t.tipo, linea=t.linea, col=t.columna)
+                for t in tokens
+            ]
+            if errores_lex:
+                res.err = [
+                    Err(tipo="léxico", linea=e.linea, col=e.columna,
+                        msg=f"{e.error}: '{e.valor}'")
+                    for e in errores_lex
+                ]
+                return res
+
+            arbol, errores_sint = _parse_sintatico(tokens)
+            res.arb = arbol
+
+            if arbol is not None:
+                arbol_anotado, tabla, errores_sem = _analyze_semantico(arbol)
+                res.arb_anotado = arbol_anotado
+                res.sim = tabla.obtener_simbolos()
+                res.err = [
+                    Err(tipo="sintáctico", linea=e.linea, col=e.columna, msg=e.msg)
+                    for e in errores_sint
+                ] + [
+                    Err(tipo="semántico", linea=e.linea, col=e.columna,
+                        msg=f"{e.error}: {e.msg}")
+                    for e in errores_sem
+                ]
+            else:
+                res.err = [
+                    Err(tipo="sintáctico", linea=e.linea, col=e.columna, msg=e.msg)
+                    for e in errores_sint
+                ]
+
+            if not res.err:
+                res.sal = "Compilación completada con éxito hasta la fase semántica."
 
         return res

@@ -65,8 +65,9 @@ class PanelArb(QWidget):
     - Colores por categoría (sin emoji)
     """
 
-    def __init__(self, parent=None, _standalone: bool = False):
+    def __init__(self, parent=None, _standalone: bool = False, titulo: str = "Árbol Sintáctico Abstracto"):
         super().__init__(parent)
+        self._titulo_texto = titulo
         self._raiz_actual: NodoArb | None = None
         self._errores_actual: list = []          # lista de Err con errores sintácticos
         self._ventana_ext: _VentanaArbol | None = None
@@ -87,7 +88,7 @@ class PanelArb(QWidget):
         blay.setContentsMargins(8, 5, 8, 5)
         blay.setSpacing(6)
 
-        titulo = QLabel("Árbol Sintáctico Abstracto")
+        titulo = QLabel(self._titulo_texto)
         titulo.setStyleSheet("font-weight: 600;")
         blay.addWidget(titulo)
         blay.addStretch()
@@ -182,8 +183,34 @@ class PanelArb(QWidget):
         categ = _CATEGORIAS.get(tipo, "—")
         color = QColor(_COLORES.get(tipo, _COLORES[""]))
 
+        etiq = nodo.etiqueta
+        anotaciones = []
+        if getattr(nodo, "atributos", None):
+            dtype = nodo.atributos.get("dtype")
+            if dtype:
+                anotaciones.append(f"dtype: {dtype}")
+            dir_mem = nodo.atributos.get("dir")
+            if dir_mem is not None:
+                anotaciones.append(f"dir: {dir_mem}")
+        tipo_dato = getattr(nodo, "tipo_dato", "")
+        if tipo_dato and tipo_dato not in ("void", ""):
+            anotaciones.append(f"tipo: {tipo_dato}")
+        val = getattr(nodo, "valor", None)
+        if val is not None:
+            if isinstance(val, float):
+                val_str = f"{val:.4g}" if val % 1 != 0 else f"{val:.1f}"
+            else:
+                val_str = str(val)
+            anotaciones.append(f"val: {val_str}")
+        conv = getattr(nodo, "conversion", "")
+        if conv:
+            anotaciones.append(f"conv: {conv}")
+
+        if anotaciones:
+            etiq = f"{etiq}  {{{', '.join(anotaciones)}}}"
+
         item = QTreeWidgetItem([
-            nodo.etiqueta,
+            etiq,
             categ,
             str(linea) if linea else "",
         ])

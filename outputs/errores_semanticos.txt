@@ -1,0 +1,15 @@
+Errores Semanticos Detectados
+Archivo fuente: testSintactico.src
+----------------------------------------------------
+Total: 2 error(es) semantico(s)
+
+[1] Linea 19
+    Tipo    : Inconsistencia de tipos en asignación
+    Elemento: 'y'
+    Mensaje : Inconsistencia de tipos en asignación a 'y': no se puede asignar una expresión de tipo 'float' a la variable entera 'int' sin conversión explícita.
+
+[2] Linea 22
+    Tipo    : Uso indebido de operadores
+    Elemento: '&&'
+    Mensaje : Uso indebido de operador lógico '&&': requiere operandos de tipo 'bool', pero se obtuvo 'int' y 'bool'.
+

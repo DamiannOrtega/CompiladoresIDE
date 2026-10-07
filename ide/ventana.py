@@ -264,7 +264,8 @@ class VentanaPrincipal(QMainWindow):
         self._p_tok  = PanelTok()
         self._p_err  = PanelErr()
         self._p_sim  = PanelSim()
-        self._p_arb  = PanelArb()
+        self._p_arb  = PanelArb(titulo="Árbol Sintáctico (Original)")
+        self._p_arb_semant = PanelArb(titulo="Árbol Anotado (Semántico)")
         self._p_ir   = PanelIr()
         self._p_sal  = PanelSal()
         self._p_arch = PanelArchivos()
@@ -448,25 +449,19 @@ class VentanaPrincipal(QMainWindow):
 
     def _crear_docks(self):
         # ── Izquierda: Explorador + Tabla de símbolos ──
-        tabs_izq = QTabWidget()
-        tabs_izq.addTab(self._p_arch, "Explorador")
-        tabs_izq.addTab(self._p_sim,  "Símbolos")
+        self._tabs_izq = QTabWidget()
+        self._tabs_izq.addTab(self._p_arch, "Explorador")
+        self._tabs_izq.addTab(self._p_sim,  "Símbolos")
 
         self._dock_izq = QDockWidget("Explorador", self)
-        self._dock_izq.setWidget(tabs_izq)
+        self._dock_izq.setWidget(self._tabs_izq)
         self._dock_izq.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_izq)
 
-        # ── Derecha: Árbol sintáctico + Semántico ──
-        self._p_semant_info = QLabel(
-            "El análisis semántico\naparecerá aquí.",
-            alignment=Qt.AlignCenter
-        )
-        self._p_semant_info.setObjectName("semant_placeholder")
-
+        # ── Derecha: Árbol sintáctico + Árbol Anotado ──
         self._tabs_der = QTabWidget()
-        self._tabs_der.addTab(self._p_arb,         "Árbol Sintáctico")
-        self._tabs_der.addTab(self._p_semant_info, "Semántico")
+        self._tabs_der.addTab(self._p_arb,        "Árbol Sintáctico")
+        self._tabs_der.addTab(self._p_arb_semant, "Árbol Anotado")
 
         self._dock_der = QDockWidget("Análisis", self)
         self._dock_der.setWidget(self._tabs_der)
@@ -713,6 +708,7 @@ class VentanaPrincipal(QMainWindow):
         self._limpiar_paneles()
         self._acc_lexico.setEnabled(False)
         self._acc_sintac.setEnabled(False)
+        self._acc_semant.setEnabled(False)
 
         texto = self._editor.toPlainText()
         ruta  = self._ruta_arch or ""
@@ -738,6 +734,7 @@ class VentanaPrincipal(QMainWindow):
         self._compilando = False
         self._acc_lexico.setEnabled(True)
         self._acc_sintac.setEnabled(True)
+        self._acc_semant.setEnabled(True)
 
         if res.tok:
             self._p_tok.cargar(res.tok)
@@ -750,6 +747,9 @@ class VentanaPrincipal(QMainWindow):
             # Filtrar solo errores sintácticos para el panel del árbol
             errores_sint = [e for e in res.err if getattr(e, "tipo", "") == "sintáctico"]
             self._p_arb.cargar(res.arb, errores_sint)
+        if getattr(res, "arb_anotado", None):
+            errores_sem = [e for e in res.err if getattr(e, "tipo", "") == "semántico"]
+            self._p_arb_semant.cargar(res.arb_anotado, errores_sem)
         if res.ir:
             self._p_ir.cargar(res.ir)
         if res.sal:
@@ -763,12 +763,28 @@ class VentanaPrincipal(QMainWindow):
                 self._dock_der.setVisible(True)
                 self._dock_der.raise_()
                 self._tabs_der.setCurrentWidget(self._p_arb)
-        elif fase == "semantic":
-            self._mostrar_panel(self._p_tok)
+        elif fase in ("semantic", "run"):
+            if getattr(res, "arb_anotado", None) is not None:
+                self._dock_der.setVisible(True)
+                self._dock_der.raise_()
+                self._tabs_der.setCurrentWidget(self._p_arb_semant)
+            elif res.arb is not None:
+                self._dock_der.setVisible(True)
+                self._dock_der.raise_()
+                self._tabs_der.setCurrentWidget(self._p_arb)
+
+            if res.sim:
+                self._dock_izq.setVisible(True)
+                self._tabs_izq.setCurrentWidget(self._p_sim)
+
+            if res.err:
+                self._mostrar_panel(self._p_err)
+            elif res.sal:
+                self._mostrar_panel(self._p_sal)
+            else:
+                self._mostrar_panel(self._p_tok)
         elif fase == "ir":
             self._mostrar_panel(self._p_ir)
-        elif fase == "run":
-            self._mostrar_panel(self._p_sal)
 
         n_err = len(res.err)
         if n_err:
@@ -776,9 +792,9 @@ class VentanaPrincipal(QMainWindow):
         else:
             self._set_estado("Compilación exitosa")
 
-        if self._editor and fase == "lexical" and res.err:
-            self._editor.marcar_errores(res.err)
-        elif self._editor and fase == "lexical":
+        if self._editor and res.err:
+            self._editor.marcar_errores([e for e in res.err if getattr(e, "linea", 0) > 0])
+        elif self._editor:
             self._editor.limpiar_errores()
 
     def _limpiar_paneles(self):
@@ -786,6 +802,7 @@ class VentanaPrincipal(QMainWindow):
         self._p_err.limpiar()
         self._p_sim.limpiar()
         self._p_arb.limpiar()
+        self._p_arb_semant.limpiar()
         self._p_ir.limpiar()
         self._p_sal.limpiar()
         # Quitar subrayados de error del editor activo
