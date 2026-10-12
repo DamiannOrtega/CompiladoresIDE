@@ -340,7 +340,7 @@ class VentanaPrincipal(QMainWindow):
 
         # Explorador (izquierda)
         acc_izq = self._dock_izq.toggleViewAction()
-        acc_izq.setText("&Explorador / Símbolos")
+        acc_izq.setText("&Explorador")
         acc_izq.setShortcut(QKeySequence("Alt+1"))
         m_paneles.addAction(acc_izq)
 
@@ -448,20 +448,20 @@ class VentanaPrincipal(QMainWindow):
     # ── Docks ─────────────────────────────────────────────────────────
 
     def _crear_docks(self):
-        # ── Izquierda: Explorador + Tabla de símbolos ──
+        # ── Izquierda: Explorador ──
         self._tabs_izq = QTabWidget()
         self._tabs_izq.addTab(self._p_arch, "Explorador")
-        self._tabs_izq.addTab(self._p_sim,  "Símbolos")
 
         self._dock_izq = QDockWidget("Explorador", self)
         self._dock_izq.setWidget(self._tabs_izq)
         self._dock_izq.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self._dock_izq)
 
-        # ── Derecha: Árbol sintáctico + Árbol Anotado ──
+        # ── Derecha: Árbol sintáctico + Árbol Anotado + Tabla de Símbolos ──
         self._tabs_der = QTabWidget()
         self._tabs_der.addTab(self._p_arb,        "Árbol Sintáctico")
         self._tabs_der.addTab(self._p_arb_semant, "Árbol Anotado")
+        self._tabs_der.addTab(self._p_sim,        "Tabla de Símbolos")
 
         self._dock_der = QDockWidget("Análisis", self)
         self._dock_der.setWidget(self._tabs_der)
@@ -736,19 +736,30 @@ class VentanaPrincipal(QMainWindow):
         self._acc_sintac.setEnabled(True)
         self._acc_semant.setEnabled(True)
 
+        # Separar errores por tipo para mostrar solo los correspondientes a cada fase
+        errores_sint = [e for e in res.err if getattr(e, "tipo", "") == "sintáctico"]
+        errores_sem  = [e for e in res.err if getattr(e, "tipo", "") == "semántico"]
+
+        # Determinar qué errores mostrar en el panel de errores según la fase
+        if fase == "lexical":
+            errores_panel = res.err  # errores léxicos (todos)
+        elif fase == "syntax":
+            errores_panel = errores_sint
+        elif fase in ("semantic", "run"):
+            errores_panel = errores_sem
+        else:
+            errores_panel = res.err
+
         if res.tok:
             self._p_tok.cargar(res.tok)
-        if res.err:
-            self._p_err.cargar(res.err)
+        if errores_panel:
+            self._p_err.cargar(errores_panel)
             self._mostrar_panel(self._p_err)
         if res.sim:
             self._p_sim.cargar(res.sim)
         if res.arb:
-            # Filtrar solo errores sintácticos para el panel del árbol
-            errores_sint = [e for e in res.err if getattr(e, "tipo", "") == "sintáctico"]
             self._p_arb.cargar(res.arb, errores_sint)
         if getattr(res, "arb_anotado", None):
-            errores_sem = [e for e in res.err if getattr(e, "tipo", "") == "semántico"]
             self._p_arb_semant.cargar(res.arb_anotado, errores_sem)
         if res.ir:
             self._p_ir.cargar(res.ir)
@@ -773,11 +784,12 @@ class VentanaPrincipal(QMainWindow):
                 self._dock_der.raise_()
                 self._tabs_der.setCurrentWidget(self._p_arb)
 
+            # Mostrar tabla de símbolos en el panel de análisis (derecha)
             if res.sim:
-                self._dock_izq.setVisible(True)
-                self._tabs_izq.setCurrentWidget(self._p_sim)
+                self._dock_der.setVisible(True)
+                self._tabs_der.setCurrentWidget(self._p_sim)
 
-            if res.err:
+            if errores_panel:
                 self._mostrar_panel(self._p_err)
             elif res.sal:
                 self._mostrar_panel(self._p_sal)
@@ -786,14 +798,16 @@ class VentanaPrincipal(QMainWindow):
         elif fase == "ir":
             self._mostrar_panel(self._p_ir)
 
-        n_err = len(res.err)
+        n_err = len(errores_panel)
+        n_err_total = len(res.err)
         if n_err:
             self._set_estado(f"Compilación completada con {n_err} error(es)")
         else:
             self._set_estado("Compilación exitosa")
 
-        if self._editor and res.err:
-            self._editor.marcar_errores([e for e in res.err if getattr(e, "linea", 0) > 0])
+        # Marcar en el editor solo los errores de la fase actual
+        if self._editor and errores_panel:
+            self._editor.marcar_errores([e for e in errores_panel if getattr(e, "linea", 0) > 0])
         elif self._editor:
             self._editor.limpiar_errores()
 

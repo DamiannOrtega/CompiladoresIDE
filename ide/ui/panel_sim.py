@@ -9,7 +9,7 @@ from ide.modelos.datos import Sim
 class PanelSim(QWidget):
     """Muestra la tabla de símbolos."""
 
-    COLS = ["Nombre", "Tipo", "Ámbito", "Desplazamiento", "Tam (B)", "Lín. Decl.", "Referencias"]
+    COLS = ["Nombre", "Tipo", "Ámbito", "Desplazamiento", "Referencias"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -39,16 +39,8 @@ class PanelSim(QWidget):
             desp_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             self._tabla.setItem(fila, 3, desp_item)
 
-            tam_item = QTableWidgetItem(str(s.tam_bytes))
-            tam_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self._tabla.setItem(fila, 4, tam_item)
-
-            lin_item = QTableWidgetItem(str(s.linea))
-            lin_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self._tabla.setItem(fila, 5, lin_item)
-
             refs_str = ", ".join(str(r) for r in s.referencias) if s.referencias else "—"
-            self._tabla.setItem(fila, 6, QTableWidgetItem(refs_str))
+            self._tabla.setItem(fila, 4, QTableWidgetItem(refs_str))
 
         self._tabla.resizeColumnsToContents()
 
