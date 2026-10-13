@@ -17,7 +17,8 @@
 #   sent_in           → cin >> id ;
 #   sent_out          → cout << salida [;]
 #   salida            → cadena | expresion | cadena << expresion | expresion << cadena
-#   expresion         → expresion_simple [(rel_op | op_logico_bin) expresion_simple]
+#   expresion             → expresion_relacional (op_logico_bin expresion_relacional)*
+#   expresion_relacional  → expresion_simple [rel_op expresion_simple]
 #   expresion_simple  → termino (suma_op termino)*
 #   termino           → factor (mult_op factor)*
 #   factor            → componente [^ componente]
@@ -643,24 +644,32 @@ class Parser:
 
     def _expresion(self) -> Optional[NodoArb]:
         """
-        expresion → expresion_simple [rel_op expresion_simple]
-                  | expresion_simple [op_logico_bin expresion_simple]
-        """
-        izq = self._expresion_simple()
+        expresion → expresion_relacional [op_logico_bin expresion_relacional]*
+        expresion_relacional → expresion_simple [rel_op expresion_simple]
 
-        # operadores relacionales
-        if self._es(OPERADOR_RELACIONAL) and self._actual().valor in _REL_OPS:
+        Soporta encadenamiento de operadores relacionales y lógicos,
+        por ejemplo: 4>2 && true, a==b || c!=d, etc.
+        """
+        izq = self._expresion_relacional()
+
+        # operadores lógicos binarios (&&, ||) — pueden encadenarse
+        while self._es(OPERADOR_LOGICO) and self._actual().valor in _LOGICOS_BIN:
             op_tok = self._avanzar()
-            der = self._expresion_simple()
+            der = self._expresion_relacional()
             nodo = NodoArb(etiqueta=f"Op: {op_tok.valor}", linea=op_tok.linea, tipo_nodo="expr")
             if izq:
                 nodo.hijos.append(izq)
             if der:
                 nodo.hijos.append(der)
-            return nodo
+            izq = nodo
 
-        # operadores lógicos binarios (&&, ||)
-        if self._es(OPERADOR_LOGICO) and self._actual().valor in _LOGICOS_BIN:
+        return izq
+
+    def _expresion_relacional(self) -> Optional[NodoArb]:
+        """expresion_relacional → expresion_simple [rel_op expresion_simple]"""
+        izq = self._expresion_simple()
+
+        if self._es(OPERADOR_RELACIONAL) and self._actual().valor in _REL_OPS:
             op_tok = self._avanzar()
             der = self._expresion_simple()
             nodo = NodoArb(etiqueta=f"Op: {op_tok.valor}", linea=op_tok.linea, tipo_nodo="expr")

@@ -80,11 +80,12 @@ class TablaSimbolos:
         return nombre in self._simbolos
 
     def registrar_uso(self, nombre: str, linea: int) -> None:
-        """Registra una línea donde el símbolo fue referenciado (leído o escrito)."""
+        """Registra una línea donde el símbolo fue referenciado (leído o escrito).
+        Se permiten referencias duplicadas para reflejar múltiples usos en la misma línea.
+        """
         sim = self._simbolos.get(nombre)
         if sim is not None and linea > 0:
-            if linea not in sim.referencias:
-                sim.referencias.append(linea)
+            sim.referencias.append(linea)
 
     def obtener_simbolos(self) -> List[Sim]:
         """Retorna la lista ordenada de símbolos registrados."""
@@ -310,10 +311,14 @@ class AnalizadorSemantico:
                     var_nodo.linea,
                     valor=id_nombre,
                 )
+                # Aun en duplicado, registrar la línea como referencia adicional
+                self.tabla.registrar_uso(id_nombre, var_nodo.linea)
             else:
                 sim = self.tabla.buscar(id_nombre)
                 if sim:
                     var_nodo.atributos["dir"] = sim.desplazamiento
+                    # La línea de declaración también cuenta como referencia
+                    self.tabla.registrar_uso(id_nombre, var_nodo.linea)
 
             # Inicialización opcional si tiene expresión hija: int x = <expr>
             if var_nodo.hijos:
