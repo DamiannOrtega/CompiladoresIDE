@@ -13,7 +13,7 @@
 #   sent_expresion    → expresion ; | ;
 #   seleccion         → if expresion then lista_sentencias [else lista_sentencias] end
 #   iteracion         → while expresion lista_sentencias end
-#   repeticion        → do lista_sentencias while expresion
+#   repeticion        → do lista_sentencias until expresion
 #   sent_in           → cin >> id ;
 #   sent_out          → cout << salida [;]
 #   salida            → cadena | expresion | cadena << expresion | expresion << cadena
@@ -24,9 +24,9 @@
 #   factor            → componente [^ componente]
 #   componente        → ( expresion ) | número | id | true | false | ! componente
 #
-# Nota: do-while usa 'terminar_en_while=True' en _lista_sentencias.
-#       Limitación conocida: un while-end anidado directo dentro del cuerpo
-#       de un do se detecta como terminador. Evitar este patrón.
+# Nota: do-until usa 'terminar_en_until=True' en _lista_sentencias.
+#       La palabra 'until' actúa como terminador del cuerpo del do,
+#       permitiendo que while-end anidados funcionen sin conflicto.
 
 from typing import List, Optional, Tuple
 
@@ -107,8 +107,8 @@ class Parser:
         """True si el token actual es un tipo de dato (int/float/bool)."""
         return self._es(PALABRA_RESERVADA) and self._actual().valor in _TIPOS_VALIDOS
 
-    def _es_fin_bloque(self, terminar_en_while: bool = False) -> bool:
-        """True si el token actual cierra un bloque (end, else, }, EOF)."""
+    def _es_fin_bloque(self, terminar_en_until: bool = False) -> bool:
+        """True si el token actual cierra un bloque (end, else, }, EOF, o 'until' si terminar_en_until=True)."""
         tok = self._actual()
         if tok.tipo == "EOF":
             return True
@@ -116,7 +116,7 @@ class Parser:
             return True
         if tok.tipo == PALABRA_RESERVADA and tok.valor in ("end", "else"):
             return True
-        if terminar_en_while and tok.tipo == PALABRA_RESERVADA and tok.valor == "while":
+        if terminar_en_until and tok.tipo == PALABRA_RESERVADA and tok.valor == "until":
             return True
         return False
 
@@ -318,13 +318,13 @@ class Parser:
 
     # ── lista_sentencias ──────────────────────────────────────────────────────
 
-    def _lista_sentencias(self, terminar_en_while: bool = False) -> List[NodoArb]:
+    def _lista_sentencias(self, terminar_en_until: bool = False) -> List[NodoArb]:
         """
         lista_sentencias → sentencia*
-        Se detiene al ver: end, else, }, EOF (o 'while' si terminar_en_while=True).
+        Se detiene al ver: end, else, }, EOF (o 'until' si terminar_en_until=True).
         """
         nodos: List[NodoArb] = []
-        while not self._es_fin_bloque(terminar_en_while):
+        while not self._es_fin_bloque(terminar_en_until):
             _pos_antes = self._pos          # guardia anti-bucle infinito
             if self._es_tipo():
                 self._error(
@@ -339,7 +339,7 @@ class Parser:
             if n:
                 nodos.append(n)
             # Guardia: si no se avanzó, forzar avance
-            if self._pos == _pos_antes and not self._es_fin_bloque(terminar_en_while):
+            if self._pos == _pos_antes and not self._es_fin_bloque(terminar_en_until):
                 tok = self._actual()
                 if tok.tipo != "EOF":
                     self._error(f"Token inesperado en sentencia: '{tok.valor}'", tok)
@@ -515,13 +515,13 @@ class Parser:
 
     def _repeticion(self) -> Optional[NodoArb]:
         """
-        repeticion → do lista_sentencias while expresion
-        Nota: _lista_sentencias se llama con terminar_en_while=True para que
-        se detenga antes del 'while' del do-while. Limitación: un while-end
-        anidado directo dentro del cuerpo también detendría el parsing.
+        repeticion → do lista_sentencias until expresion
+        Nota: _lista_sentencias se llama con terminar_en_until=True para que
+        se detenga antes del 'until' del do-until. Esto permite que sentencias
+        while-end anidadas dentro del cuerpo del do funcionen sin conflicto.
         """
         tok = self._actual()
-        nodo = NodoArb(etiqueta="Hacer (do-while)", linea=tok.linea, tipo_nodo="stmt")
+        nodo = NodoArb(etiqueta="Hacer (do-until)", linea=tok.linea, tipo_nodo="stmt")
 
         self._match(PALABRA_RESERVADA, "do")
 
@@ -530,12 +530,12 @@ class Parser:
             linea=self._actual().linea,
             tipo_nodo="bloque",
         )
-        # terminar_en_while=True: la lista se detiene antes del 'while' del do
-        cuerpo.hijos.extend(self._lista_sentencias(terminar_en_while=True))
+        # terminar_en_until=True: la lista se detiene antes del 'until'
+        cuerpo.hijos.extend(self._lista_sentencias(terminar_en_until=True))
         nodo.hijos.append(cuerpo)
 
-        if not self._es(PALABRA_RESERVADA, "while"):
-            self._error("Se esperaba 'while' al final del bloque 'do'")
+        if not self._es(PALABRA_RESERVADA, "until"):
+            self._error("Se esperaba 'until' al final del bloque 'do'")
         else:
             self._avanzar()
 
@@ -543,7 +543,7 @@ class Parser:
         if cond:
             nodo.hijos.append(cond)
 
-        # ';' opcional al final del do-while (buena práctica)
+        # ';' opcional al final del do-until (buena práctica)
         if self._es(SIMBOLO, ";"):
             self._avanzar()
 

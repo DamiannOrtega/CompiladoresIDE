@@ -249,8 +249,8 @@ class AnalizadorSemantico:
             self._procesar_while(nodo)
             return
 
-        # Estructura de repetición: Hacer (do-while)
-        if etiq.startswith("Hacer (do-while)"):
+        # Estructura de repetición: Hacer (do-until)
+        if etiq.startswith("Hacer (do-until)"):
             self._procesar_do_while(nodo)
             return
 
@@ -347,6 +347,7 @@ class AnalizadorSemantico:
                 nodo.linea,
                 valor=id_nombre,
             )
+            nodo.tipo_dato = "error"   # marcar el nodo con error
             tipo_destino = "error"
         else:
             self.tabla.registrar_uso(id_nombre, nodo.linea)
@@ -358,9 +359,13 @@ class AnalizadorSemantico:
             expr = nodo.hijos[0]
             self._evaluar_expresion(expr)
             if tipo_destino != "error":
+                habia_error = len(self.errores)
                 self._verificar_compatibilidad_asignacion(
                     tipo_destino, expr, nodo.linea, id_nombre
                 )
+                # Si _verificar_compatibilidad_asignacion añadió un error, marcar nodo
+                if len(self.errores) > habia_error:
+                    nodo.tipo_dato = "error"
 
     def _verificar_compatibilidad_asignacion(
         self, tipo_var: str, expr_nodo: NodoArb, linea: int, id_nombre: str
@@ -473,7 +478,7 @@ class AnalizadorSemantico:
 
     def _procesar_do_while(self, nodo: NodoArb) -> None:
         """
-        Hijos de Hacer (do-while):
+        Hijos de Hacer (do-until):
         Hijo 0: Cuerpo [bloque]
         Hijo 1: condición [expresion]
         """
@@ -519,6 +524,7 @@ class AnalizadorSemantico:
                     nodo.linea,
                     valor=id_nombre,
                 )
+                nodo.tipo_dato = "error"   # marcar nodo cin con error
             else:
                 self.tabla.registrar_uso(id_nombre, nodo.linea)
                 nodo.tipo_dato = sim.tipo

@@ -22,7 +22,7 @@ OPERADOR_IO      = "OPERADOR_IO"
 # ── Palabras reservadas del lenguaje ─────────────────────────────────────────
 
 PALABRAS_RESERVADAS = {
-    "if", "then", "else", "end", "do", "while",
+    "if", "then", "else", "end", "do", "while", "until",
     "switch", "case", "int", "float", "bool", "true", "false",
     "main", "cin", "cout",
 }
