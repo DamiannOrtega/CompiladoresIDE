@@ -6,6 +6,7 @@
 # 3. Construcción del AST Anotado (clon enriquecido del AST original).
 # 4. Verificación de compatibilidad y conversión de tipos.
 # 5. Detección de los 7 errores semánticos obligatorios según el programa de Compiladores II.
+# 6. Anotación visual de errores en el AST anotado (atributo "error_semantico").
 
 from typing import List, Dict, Optional, Tuple, Any
 from copy import deepcopy
@@ -120,6 +121,12 @@ def clonar_ast(nodo: Optional[NodoArb]) -> Optional[NodoArb]:
 def _formatear_etiqueta_anotada(nodo: NodoArb) -> str:
     """Devuelve la etiqueta con la representación visual de sus atributos semánticos."""
     anotaciones = []
+
+    # Error semántico asociado a este nodo (si lo hay)
+    error_semantico = nodo.atributos.get("error_semantico")
+    if error_semantico:
+        anotaciones.append(f"error: {error_semantico}")
+
     dtype = nodo.atributos.get("dtype")
     if dtype:
         anotaciones.append(f"dtype: {dtype}")
@@ -198,7 +205,16 @@ class AnalizadorSemantico:
 
         return self.raiz_anotada, self.tabla, self.errores
 
-    def _agregar_error(self, tipo: str, msg: str, linea: int, valor: str = "") -> None:
+    def _marcar_error_nodo(self, nodo: Optional[NodoArb], mensaje: str) -> None:
+        """Guarda la anotación visual sin borrar el tipo real de la expresión."""
+        if nodo is not None:
+            nodo.atributos["error_semantico"] = mensaje
+
+    def _agregar_error(
+        self, tipo: str, msg: str, linea: int, valor: str = "",
+        nodo: Optional[NodoArb] = None
+    ) -> None:
+        """Registra el error en la lista y lo marca en el nodo del árbol."""
         self.errores.append(
             ErrorSemantico(
                 error=tipo,
@@ -208,6 +224,7 @@ class AnalizadorSemantico:
                 valor=valor,
             )
         )
+        self._marcar_error_nodo(nodo, msg)
 
     # ── Despacho principal por tipo de nodo ────────────────────────────────────
 
@@ -287,7 +304,6 @@ class AnalizadorSemantico:
         hacia sus identificadores hijos 'Var: <id>'.
         Inserta cada variable en la Tabla de Símbolos.
         """
-        # Extraer tipo base de "Decl: int", "Decl: float", "Decl: bool"
         partes = nodo.etiqueta.split(":", 1)
         tipo_base = partes[1].strip() if len(partes) > 1 else ""
 
@@ -310,6 +326,7 @@ class AnalizadorSemantico:
                     err_msg or f"Declaración duplicada: la variable '{id_nombre}' ya existe.",
                     var_nodo.linea,
                     valor=id_nombre,
+                    nodo=var_nodo,
                 )
                 # Aun en duplicado, registrar la línea como referencia adicional
                 self.tabla.registrar_uso(id_nombre, var_nodo.linea)
@@ -325,7 +342,8 @@ class AnalizadorSemantico:
                 expr_init = var_nodo.hijos[0]
                 self._evaluar_expresion(expr_init)
                 self._verificar_compatibilidad_asignacion(
-                    tipo_base, expr_init, var_nodo.linea, id_nombre
+                    tipo_base, expr_init, var_nodo.linea, id_nombre,
+                    nodo_asignacion=var_nodo,
                 )
 
     # ── 2. Asignaciones ───────────────────────────────────────────────────────
@@ -346,9 +364,11 @@ class AnalizadorSemantico:
                 f"La variable '{id_nombre}' no ha sido declarada.",
                 nodo.linea,
                 valor=id_nombre,
+                nodo=nodo,
             )
             nodo.tipo_dato = "error"   # marcar el nodo con error
             tipo_destino = "error"
+            nodo.tipo_dato = "error"
         else:
             self.tabla.registrar_uso(id_nombre, nodo.linea)
             tipo_destino = sim.tipo
@@ -361,14 +381,16 @@ class AnalizadorSemantico:
             if tipo_destino != "error":
                 habia_error = len(self.errores)
                 self._verificar_compatibilidad_asignacion(
-                    tipo_destino, expr, nodo.linea, id_nombre
+                    tipo_destino, expr, nodo.linea, id_nombre,
+                    nodo_asignacion=nodo,
                 )
                 # Si _verificar_compatibilidad_asignacion añadió un error, marcar nodo
                 if len(self.errores) > habia_error:
                     nodo.tipo_dato = "error"
 
     def _verificar_compatibilidad_asignacion(
-        self, tipo_var: str, expr_nodo: NodoArb, linea: int, id_nombre: str
+        self, tipo_var: str, expr_nodo: NodoArb, linea: int, id_nombre: str,
+        nodo_asignacion: Optional[NodoArb] = None
     ) -> None:
         """Comprueba si el tipo de la expresión puede asignarse al tipo de la variable."""
         tipo_expr = expr_nodo.tipo_dato
@@ -391,6 +413,7 @@ class AnalizadorSemantico:
                 f"Inconsistencia de tipos en asignación a '{id_nombre}': no se puede asignar una expresión de tipo 'float' a la variable entera 'int' sin conversión explícita.",
                 linea,
                 valor=id_nombre,
+                nodo=nodo_asignacion,
             )
             return
 
@@ -401,6 +424,7 @@ class AnalizadorSemantico:
                 f"Inconsistencia de tipos en asignación a '{id_nombre}': no se puede asignar una expresión de tipo '{tipo_expr}' a una variable booleana.",
                 linea,
                 valor=id_nombre,
+                nodo=nodo_asignacion,
             )
             return
 
@@ -410,6 +434,7 @@ class AnalizadorSemantico:
                 f"Inconsistencia de tipos en asignación a '{id_nombre}': no se puede asignar una expresión booleana a una variable numérica '{tipo_var}'.",
                 linea,
                 valor=id_nombre,
+                nodo=nodo_asignacion,
             )
             return
 
@@ -418,6 +443,7 @@ class AnalizadorSemantico:
             f"Tipos incompatibles en asignación a '{id_nombre}': variable '{tipo_var}' vs expresión '{tipo_expr}'.",
             linea,
             valor=id_nombre,
+            nodo=nodo_asignacion,
         )
 
     # ── 3. Incremento / Decremento ────────────────────────────────────────────
@@ -434,15 +460,19 @@ class AnalizadorSemantico:
                 f"La variable '{id_nombre}' no ha sido declarada.",
                 nodo.linea,
                 valor=id_nombre,
+                nodo=nodo,
             )
+            nodo.tipo_dato = "error"
         else:
             self.tabla.registrar_uso(id_nombre, nodo.linea)
+            nodo.tipo_dato = sim.tipo
             if sim.tipo == "bool":
                 self._agregar_error(
                     ERR_OPERADOR_INDEBIDO,
                     f"Uso indebido de operador de incremento/decremento sobre la variable booleana '{id_nombre}'.",
                     nodo.linea,
                     valor=id_nombre,
+                    nodo=nodo,
                 )
 
     # ── 4. Estructuras de Control (Condicionales y Bucles) ─────────────────────
@@ -501,6 +531,7 @@ class AnalizadorSemantico:
                 f"Tipo no booleano en condición de '{estructura}': se requiere una expresión 'bool', se obtuvo '{tipo}'.",
                 cond_nodo.linea,
                 valor=estructura,
+                nodo=cond_nodo,
             )
 
     # ── 5. Entrada y Salida ───────────────────────────────────────────────────
@@ -523,6 +554,7 @@ class AnalizadorSemantico:
                     f"La variable '{id_nombre}' utilizada en 'cin' no ha sido declarada.",
                     nodo.linea,
                     valor=id_nombre,
+                    nodo=nodo,
                 )
                 nodo.tipo_dato = "error"   # marcar nodo cin con error
             else:
@@ -540,6 +572,7 @@ class AnalizadorSemantico:
         """
         Evalúa recursivamente expresiones calculando y sintetizando
         los atributos 'tipo_dato' y 'valor' (const folding).
+        Cada error detectado se marca también en el nodo donde ocurre.
         """
         if nodo is None:
             return
@@ -586,6 +619,7 @@ class AnalizadorSemantico:
                     f"La variable '{id_nombre}' no ha sido declarada.",
                     nodo.linea,
                     valor=id_nombre,
+                    nodo=nodo,
                 )
                 nodo.tipo_dato = "error"
             else:
@@ -619,6 +653,7 @@ class AnalizadorSemantico:
                             f"Uso indebido de operador '!': requiere un operando de tipo 'bool', se obtuvo '{t_op}'.",
                             nodo.linea,
                             valor=op,
+                            nodo=nodo,
                         )
                         nodo.tipo_dato = "error"
                     else:
@@ -646,12 +681,13 @@ class AnalizadorSemantico:
 
                 # Aritméticos: +, -, *, /, ^
                 if op in _OPS_ARITMETICOS:
-                    if t1 == "bool" or t2 == "bool":
+                    if t1 not in ("int", "float") or t2 not in ("int", "float"):
                         self._agregar_error(
                             ERR_OPERADOR_INDEBIDO,
-                            f"Uso indebido de operador aritmético '{op}' con operando(s) de tipo 'bool'.",
+                            f"Uso indebido de operador aritmético '{op}': requiere operandos numéricos, pero se obtuvo '{t1}' y '{t2}'.",
                             nodo.linea,
                             valor=op,
+                            nodo=nodo,
                         )
                         nodo.tipo_dato = "error"
                         return
@@ -670,6 +706,7 @@ class AnalizadorSemantico:
                                             "División entre cero en expresión constante.",
                                             nodo.linea,
                                             valor=op,
+                                            nodo=nodo,
                                         )
                                         nodo.valor = None
                                     else:
@@ -699,6 +736,7 @@ class AnalizadorSemantico:
                                             "División entre cero en expresión constante.",
                                             nodo.linea,
                                             valor=op,
+                                            nodo=nodo,
                                         )
                                         nodo.valor = None
                                     else:
@@ -716,6 +754,7 @@ class AnalizadorSemantico:
                             f"Uso indebido del operador módulo '%': requiere operandos enteros ('int'), pero se obtuvo '{t1}' y '{t2}'.",
                             nodo.linea,
                             valor=op,
+                            nodo=nodo,
                         )
                         nodo.tipo_dato = "error"
                     else:
@@ -727,6 +766,7 @@ class AnalizadorSemantico:
                                     "Módulo con divisor cero en expresión constante.",
                                     nodo.linea,
                                     valor=op,
+                                    nodo=nodo,
                                 )
                                 nodo.valor = None
                             else:
@@ -761,6 +801,7 @@ class AnalizadorSemantico:
                                 f"Uso indebido de operador relacional '{op}' con operandos booleanos. Solo se permite '==' y '!='.",
                                 nodo.linea,
                                 valor=op,
+                                nodo=nodo,
                             )
                             nodo.tipo_dato = "error"
                     else:
@@ -769,6 +810,7 @@ class AnalizadorSemantico:
                             f"Incompatibilidad de tipos en operador relacional '{op}': no se puede comparar '{t1}' con '{t2}'.",
                             nodo.linea,
                             valor=op,
+                            nodo=nodo,
                         )
                         nodo.tipo_dato = "error"
                     return
@@ -781,6 +823,7 @@ class AnalizadorSemantico:
                             f"Uso indebido de operador lógico '{op}': requiere operandos de tipo 'bool', pero se obtuvo '{t1}' y '{t2}'.",
                             nodo.linea,
                             valor=op,
+                            nodo=nodo,
                         )
                         nodo.tipo_dato = "error"
                     else:
