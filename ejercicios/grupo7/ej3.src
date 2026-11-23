@@ -1,0 +1,42 @@
+// Grupo 7 - ej3 (selectivo)
+// Dados tres números enteros, imprimirlos en orden creciente.
+// Entradas: A, B, C (enteros)
+main {
+  int a, b, c;
+  cin >> a;
+  cin >> b;
+  cin >> c;
+  if a <= b then
+    if b <= c then
+      cout << a;
+      cout << b;
+      cout << c;
+    else
+      if a <= c then
+        cout << a;
+        cout << c;
+        cout << b;
+      else
+        cout << c;
+        cout << a;
+        cout << b;
+      end
+    end
+  else
+    if a <= c then
+      cout << b;
+      cout << a;
+      cout << c;
+    else
+      if b <= c then
+        cout << b;
+        cout << c;
+        cout << a;
+      else
+        cout << c;
+        cout << b;
+        cout << a;
+      end
+    end
+  end
+}

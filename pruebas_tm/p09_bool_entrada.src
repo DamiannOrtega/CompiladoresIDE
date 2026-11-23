@@ -1,0 +1,16 @@
+// Prueba 9 — Lectura de bool y float, comparaciones de igualdad
+main {
+  bool activo;
+  float v;
+  int veces;
+  cin >> activo;
+  cin >> v;
+  veces = 0;
+  while activo == true && veces < 3
+    v = v * 2;
+    veces++;
+  end
+  cout << "v = " << v;
+  cout << veces;
+  cout << activo != false;
+}

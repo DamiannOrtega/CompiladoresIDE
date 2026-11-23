@@ -1,0 +1,36 @@
+// Grupo 3 - ej5 (repetitivo)
+// Producción mensual de N fábricas: i) total anual de cada fábrica, ii) fábrica que más produjo y su total, iii) claves de las fábricas cuya producción de julio superó $3 000 000.
+// Entradas: N (fábricas); por fábrica: clave (entero) y producción de los 12 meses (reales)
+main {
+  int n, i, mes, clave, claveMax;
+  float produccion, total, maxTotal, julio;
+  cin >> n;
+  maxTotal = 0 - 1;
+  claveMax = 0;
+  i = 1;
+  while i <= n
+    cin >> clave;
+    total = 0;
+    mes = 1;
+    while mes <= 12
+      cin >> produccion;
+      total = total + produccion;
+      if mes == 7 then
+        julio = produccion;
+      end
+      mes++;
+    end
+    cout << "Fábrica: " << clave;
+    cout << "Total anual de producción: " << total;
+    if julio > 3000000 then
+      cout << "Producción de julio mayor a $3 000 000, clave: " << clave;
+    end
+    if total > maxTotal then
+      maxTotal = total;
+      claveMax = clave;
+    end
+    i++;
+  end
+  cout << "Fábrica que más produjo en el año: " << claveMax;
+  cout << "Total de su producción: " << maxTotal;
+}

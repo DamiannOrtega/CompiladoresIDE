@@ -1,0 +1,21 @@
+// Prueba 7 — Valores reales y conversión int -> float
+main {
+  float r, area, x;
+  int k;
+  cin >> r;
+  area = 3.14159 * r * r;
+  cout << "Area: " << area;
+  x = 7 / 2;
+  cout << x;
+  x = 7 / 2.0;
+  cout << x;
+  k = 7;
+  x = k;
+  x++;
+  cout << x << " es real";
+  if x > 8 then
+    cout << "mayor";
+  else
+    cout << "menor o igual";
+  end
+}

@@ -1,0 +1,62 @@
+// Grupo 4 - ej5 (repetitivo)
+// Estadio con 5 tipos de localidad: leer precios y ventas (CLAVE, CANT hasta -1, -1); imprimir cada venta, boletos vendidos por tipo y la recaudación total.
+// Entradas: P1..P5 (reales); luego pares CLAVE, CANT (enteros) terminando con -1, -1
+main {
+  float p1, p2, p3, p4, p5, precio, importe, total;
+  int clave, cant, b1, b2, b3, b4, b5;
+  cin >> p1;
+  cin >> p2;
+  cin >> p3;
+  cin >> p4;
+  cin >> p5;
+  b1 = 0;
+  b2 = 0;
+  b3 = 0;
+  b4 = 0;
+  b5 = 0;
+  total = 0;
+  cin >> clave;
+  cin >> cant;
+  while clave != 0 - 1
+    precio = 0;
+    if clave == 1 then
+      precio = p1;
+      b1 = b1 + cant;
+    else
+      if clave == 2 then
+        precio = p2;
+        b2 = b2 + cant;
+      else
+        if clave == 3 then
+          precio = p3;
+          b3 = b3 + cant;
+        else
+          if clave == 4 then
+            precio = p4;
+            b4 = b4 + cant;
+          else
+            if clave == 5 then
+              precio = p5;
+              b5 = b5 + cant;
+            else
+              cout << "Clave de localidad inválida: " << clave;
+            end
+          end
+        end
+      end
+    end
+    importe = precio * cant;
+    cout << "Clave: " << clave;
+    cout << "Cantidad: " << cant;
+    cout << "Importe total de la venta: " << importe;
+    total = total + importe;
+    cin >> clave;
+    cin >> cant;
+  end
+  cout << "Boletos vendidos tipo 1: " << b1;
+  cout << "Boletos vendidos tipo 2: " << b2;
+  cout << "Boletos vendidos tipo 3: " << b3;
+  cout << "Boletos vendidos tipo 4: " << b4;
+  cout << "Boletos vendidos tipo 5: " << b5;
+  cout << "Recaudación total del estadio: " << total;
+}

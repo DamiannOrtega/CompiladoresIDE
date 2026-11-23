@@ -1,0 +1,17 @@
+// Grupo 6 - ej4 (repetitivo)
+// Leer N y calcular la serie 1 - 1/2 + 1/3 - 1/4 + ... ± 1/N.
+// Entradas: N (entero)
+main {
+  int n, i;
+  float suma, signo;
+  cin >> n;
+  suma = 0;
+  signo = 1;
+  i = 1;
+  while i <= n
+    suma = suma + signo / i;
+    signo = 0 - signo;
+    i++;
+  end
+  cout << "Resultado de la serie: " << suma;
+}

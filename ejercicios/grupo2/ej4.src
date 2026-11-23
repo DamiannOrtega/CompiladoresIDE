@@ -1,0 +1,42 @@
+// Grupo 2 - ej4 (repetitivo)
+// Costo de un conjunto de llamadas. Internacional: 3 primeros min $7.59 y $3.03 cada minuto adicional; Nacional: 3 primeros min $1.20 y $0.48 cada minuto adicional; Local: las primeras 50 llamadas gratis, luego $0.60 cada una.
+// Entradas: N (número de llamadas); por llamada: tipo (1=Internacional, 2=Nacional, 3=Local) y duración en minutos
+main {
+  int n, i, tipo, minutos, locales;
+  float costo, total;
+  cin >> n;
+  total = 0;
+  locales = 0;
+  i = 1;
+  while i <= n
+    cin >> tipo;
+    cin >> minutos;
+    costo = 0;
+    if tipo == 1 then
+      costo = 7.59;
+      if minutos > 3 then
+        costo = costo + (minutos - 3) * 3.03;
+      end
+    else
+      if tipo == 2 then
+        costo = 1.20;
+        if minutos > 3 then
+          costo = costo + (minutos - 3) * 0.48;
+        end
+      else
+        if tipo == 3 then
+          locales++;
+          if locales > 50 then
+            costo = 0.60;
+          end
+        else
+          cout << "Tipo de llamada inválido: " << tipo;
+        end
+      end
+    end
+    cout << "Costo de la llamada: " << costo;
+    total = total + costo;
+    i++;
+  end
+  cout << "Total a pagar: " << total;
+}

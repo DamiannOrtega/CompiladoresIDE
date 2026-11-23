@@ -1,0 +1,27 @@
+// Grupo 12 - ej3 (selectivo)
+// Descuento según el monto: menor a $500 sin descuento; $500-$1000 5%; hasta $7000 11%; hasta $15000 18%; mayor 25%.
+// Entradas: Monto de la compra (real)
+main {
+  float monto, descuento, pagar;
+  cin >> monto;
+  if monto < 500 then
+    descuento = 0;
+  else
+    if monto <= 1000 then
+      descuento = monto * 0.05;
+    else
+      if monto <= 7000 then
+        descuento = monto * 0.11;
+      else
+        if monto <= 15000 then
+          descuento = monto * 0.18;
+        else
+          descuento = monto * 0.25;
+        end
+      end
+    end
+  end
+  pagar = monto - descuento;
+  cout << "Descuento: " << descuento;
+  cout << "Total a pagar: " << pagar;
+}

@@ -1,0 +1,12 @@
+// Grupo 3 - ej1 (secuencial)
+// Dada la base y la altura de un rectángulo, calcular su perímetro y su área.
+// Entradas: Base, altura (reales)
+main {
+  float base, altura, perimetro, area;
+  cin >> base;
+  cin >> altura;
+  perimetro = 2 * (base + altura);
+  area = base * altura;
+  cout << "Perímetro: " << perimetro;
+  cout << "Área: " << area;
+}

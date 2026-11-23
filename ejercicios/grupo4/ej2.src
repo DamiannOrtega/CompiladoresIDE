@@ -1,0 +1,27 @@
+// Grupo 4 - ej2 (selectivo)
+// Dados NUM y V enteros, calcular VAL = 100*V si NUM=1; 100^V si NUM=2; 100/V si NUM=3; 0 en otro caso.
+// Entradas: NUM, V (enteros)
+main {
+  int num, v, val;
+  cin >> num;
+  cin >> v;
+  if num == 1 then
+    val = 100 * v;
+  else
+    if num == 2 then
+      val = 100 ^ v;
+    else
+      if num == 3 then
+        if v != 0 then
+          val = 100 / v;
+        else
+          cout << "No se puede dividir entre cero";
+          val = 0;
+        end
+      else
+        val = 0;
+      end
+    end
+  end
+  cout << "VAL = " << val;
+}

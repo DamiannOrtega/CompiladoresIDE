@@ -2,7 +2,8 @@
 # runner.py — Ejecutor de línea de comandos del compilador
 #
 # Uso:
-#   python runner.py <archivo>                   → Fase léxica + sintáctica + semántica
+#   python runner.py <archivo>                   → Léxico + sintáctico + semántico + código TM
+#   python runner.py <archivo> --ejecutar         → Además ejecuta el .tm en el simulador
 #   python runner.py <archivo> --solo-lexico      → Solo fase léxica
 #   python runner.py <archivo> --solo-sintactico  → Fase léxica + sintáctica
 #
@@ -17,6 +18,7 @@
 #   tabla_simbolos.txt        Tabla de símbolos formateada en texto
 #   errores_semanticos.json   Errores semánticos en JSON
 #   errores_semanticos.txt    Errores semánticos en formato legible
+#   <programa>.tm             Instrucciones para la Tiny Machine (si no hay errores)
 
 import sys
 import json
@@ -27,6 +29,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ide.compilador.lexico import analyze
 from ide.compilador.sintatico import parse
 from ide.compilador.semantico import analyze_semantics, ast_anotado_a_texto
+from ide.compilador.generador_tm import generar_codigo_tm
+from ide.compilador.maquina_tm import ejecutar_archivo
+
+
+def _entrada_consola(sol):
+    """Pide por consola el valor de una instrucción IN."""
+    if sol.error_previo:
+        print(f"  {sol.error_previo}")
+    try:
+        return input(f"  IN [{sol.direccion}] {sol.comentario} > ")
+    except EOFError:
+        return None
 
 
 # ── Renderizador ASCII del AST original ───────────────────────────────────────
@@ -79,6 +93,7 @@ def main():
     args            = sys.argv[1:]
     solo_lexico     = "--solo-lexico" in args
     solo_sintactico = "--solo-sintactico" in args
+    ejecutar        = "--ejecutar" in args
     args            = [a for a in args if not a.startswith("--")]
 
     if not args:
@@ -263,6 +278,39 @@ def main():
             print(f"  [SEM] L{e.linea}  {e.error}: {e.msg}")
     else:
         print("  OK: Programa semanticamente valido")
+
+    # ── Fase 4: Generación de código TM ──────────────────────────────────────
+    print()
+    print("Fase 4 - Generacion de codigo TM")
+    ruta_tm = os.path.join(
+        dir_salida, os.path.splitext(os.path.basename(ruta_entrada))[0] + ".tm")
+    if errores_sem:
+        if os.path.isfile(ruta_tm):
+            os.remove(ruta_tm)
+        print("  X Omitido: existen errores semanticos.")
+    else:
+        texto_tm, errores_gen = generar_codigo_tm(
+            arbol_anotado, simbolos, os.path.basename(ruta_entrada))
+        if errores_gen:
+            if os.path.isfile(ruta_tm):
+                os.remove(ruta_tm)
+            for e in errores_gen:
+                print(f"  [GEN] L{e.linea}  {e.msg}")
+        else:
+            with open(ruta_tm, "w", encoding="utf-8") as f:
+                f.write(texto_tm)
+            n_instr = sum(1 for l in texto_tm.splitlines()
+                          if l.strip() and not l.lstrip().startswith("*"))
+            print(f"  Instrucciones TM : {n_instr}")
+            print(f"  Archivo          : {ruta_tm}")
+
+            if ejecutar:
+                # ── Fase 5: Ejecución en el simulador TM ─────────────────────
+                print()
+                print("Fase 5 - Ejecucion en la TM (simulador)")
+                res = ejecutar_archivo(ruta_tm, _entrada_consola,
+                                       lambda linea: print(f"  OUT: {linea}"))
+                print(f"  [{res.estado}] {res.mensaje}")
 
     print(f"\nArchivos generados en: {dir_salida}")
     print(f"  {os.path.basename(ruta_tok)}")

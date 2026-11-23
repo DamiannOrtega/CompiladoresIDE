@@ -1,0 +1,15 @@
+// Grupo 8 - ej2 (selectivo)
+// Dados P y Q enteros, determinar si satisfacen P^3 + Q^4 - 2*P^2 < 680.
+// Entradas: P, Q (enteros)
+main {
+  int p, q, resultado;
+  cin >> p;
+  cin >> q;
+  resultado = p ^ 3 + q ^ 4 - 2 * p ^ 2;
+  cout << "P^3 + Q^4 - 2*P^2 = " << resultado;
+  if resultado < 680 then
+    cout << "Satisfacen la expresión=1";
+  else
+    cout << "No satisfacen la expresión=0";
+  end
+}

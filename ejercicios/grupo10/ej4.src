@@ -1,0 +1,29 @@
+// Grupo 10 - ej4 (repetitivo)
+// Calcular e imprimir los números perfectos menores o iguales que N.
+// Entradas: N (entero)
+main {
+  int n, i, d, suma, cuenta;
+  cin >> n;
+  cuenta = 0;
+  i = 2;
+  while i <= n
+    // Divisores en pares (d, i / d) buscando sólo hasta la raíz de i
+    suma = 1;
+    d = 2;
+    while d * d <= i
+      if i % d == 0 then
+        suma = suma + d;
+        if d * d != i then
+          suma = suma + i / d;
+        end
+      end
+      d++;
+    end
+    if suma == i then
+      cout << i;
+      cuenta++;
+    end
+    i++;
+  end
+  cout << "Números perfectos encontrados: " << cuenta;
+}

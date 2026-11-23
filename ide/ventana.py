@@ -5,7 +5,7 @@ import ctypes
 import ctypes.wintypes
 from PySide6.QtWidgets import (
     QMainWindow, QDockWidget, QTabWidget, QTabBar, QWidget,
-    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication
+    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication,
 )
 from PySide6.QtCore import Qt, QSize, QPoint, QMimeData, QObject, QThread, Signal
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QDrag, QPixmap, QPainter
@@ -15,9 +15,12 @@ from ide.ui.panel_tok import PanelTok
 from ide.ui.panel_err import PanelErr
 from ide.ui.panel_sim import PanelSim
 from ide.ui.panel_arb import PanelArb
-from ide.ui.panel_ir import PanelIr
 from ide.ui.panel_sal import PanelSal
+from ide.ui.panel_tm import PanelTm
+from ide.ui.dialogo_entrada import DialogoEntrada, nombre_variable
 from ide.ui.panel_archivos import PanelArchivos
+from ide.modelos.datos import Err
+from ide.compilador.tm_formato import ErrorFormatoTM
 from ide.servicios.compilador import ServicioCompilador
 from ide.iconos import gestor_ico
 
@@ -107,7 +110,7 @@ class TabsArrastrables(QTabWidget):
 
     # ── Tear-off: sacar la pestaña como dock flotante ──────────────────
 
-    _ORDEN = ["Tokens", "Código Intermedio", "Errores", "Salida"]
+    _ORDEN = ["Tokens", "Código TM", "Errores", "Salida"]
 
     def _iniciar_tear_off(self, idx: int):
         if idx < 0 or idx >= self.count():
@@ -266,7 +269,7 @@ class VentanaPrincipal(QMainWindow):
         self._p_sim  = PanelSim()
         self._p_arb  = PanelArb(titulo="Árbol Sintáctico (Original)")
         self._p_arb_semant = PanelArb(titulo="Árbol Anotado (Semántico)")
-        self._p_ir   = PanelIr()
+        self._p_tm   = PanelTm()
         self._p_sal  = PanelSal()
         self._p_arch = PanelArchivos()
 
@@ -299,9 +302,9 @@ class VentanaPrincipal(QMainWindow):
         self._acc_lexico  = self._accion("Análisis Léxico",     "F5",  m_comp)
         self._acc_sintac  = self._accion("Análisis Sintáctico", "F6",  m_comp)
         self._acc_semant  = self._accion("Análisis Semántico",  "F7",  m_comp)
-        self._acc_ir      = self._accion("Generar Código IR",   "F8",  m_comp)
+        self._acc_ir      = self._accion("Generar Código TM",   "F8",  m_comp)
         m_comp.addSeparator()
-        self._acc_ejec    = self._accion("Ejecutar",            "F9",  m_comp)
+        self._acc_ejec    = self._accion("Ejecutar TM",         "F9",  m_comp)
         m_comp.addSeparator()
         self._acc_todo    = self._accion("Compilar Todo",       "F10", m_comp)
 
@@ -421,8 +424,8 @@ class VentanaPrincipal(QMainWindow):
             (self._acc_lexico, "Léxico"),
             (self._acc_sintac, "Sintáctico"),
             (self._acc_semant, "Semántico"),
-            (self._acc_ir,     "IR"),
-            (self._acc_ejec,   "Ejecutar"),
+            (self._acc_ir,     "Código TM"),
+            (self._acc_ejec,   "Ejecutar TM"),
         ]
         for acc, etiq in fases:
             acc.setText(etiq)
@@ -471,7 +474,7 @@ class VentanaPrincipal(QMainWindow):
         # ── Abajo: Tokens, IR, Errores, Salida ──
         self._tabs_abj = TabsArrastrables(self)
         self._tabs_abj.addTab(self._p_tok, "Tokens")
-        self._tabs_abj.addTab(self._p_ir,  "Código Intermedio")
+        self._tabs_abj.addTab(self._p_tm,  "Código TM")
         self._tabs_abj.addTab(self._p_err, "Errores")
         self._tabs_abj.addTab(self._p_sal, "Salida")
 
@@ -500,7 +503,8 @@ class VentanaPrincipal(QMainWindow):
         self._acc_lexico.triggered.connect(lambda: self._compilar("lexical"))
         self._acc_sintac.triggered.connect(lambda: self._compilar("syntax"))
         self._acc_semant.triggered.connect(lambda: self._compilar("semantic"))
-        self._acc_ir.triggered.connect(lambda: self._compilar("ir"))
+        self._acc_ir.triggered.connect(lambda: self._compilar("tm"))
+        self._p_tm.ejecutar_solicitado.connect(lambda: self._compilar("run"))
         self._acc_ejec.triggered.connect(lambda: self._compilar("run"))
         self._acc_todo.triggered.connect(lambda: self._compilar("run"))
 
@@ -745,8 +749,11 @@ class VentanaPrincipal(QMainWindow):
             errores_panel = res.err  # errores léxicos (todos)
         elif fase == "syntax":
             errores_panel = errores_sint
-        elif fase in ("semantic", "run"):
+        elif fase == "semantic":
             errores_panel = errores_sem
+        elif fase in ("tm", "run"):
+            # Para generar/ejecutar TM se muestran todos los errores que lo impiden
+            errores_panel = res.err
         else:
             errores_panel = res.err
 
@@ -761,8 +768,8 @@ class VentanaPrincipal(QMainWindow):
             self._p_arb.cargar(res.arb, errores_sint)
         if getattr(res, "arb_anotado", None):
             self._p_arb_semant.cargar(res.arb_anotado, errores_sem)
-        if res.ir:
-            self._p_ir.cargar(res.ir)
+        if res.tm:
+            self._p_tm.cargar(res.tm, res.ruta_tm)
         if res.sal:
             self._p_sal.cargar(res.sal)
 
@@ -774,7 +781,7 @@ class VentanaPrincipal(QMainWindow):
                 self._dock_der.setVisible(True)
                 self._dock_der.raise_()
                 self._tabs_der.setCurrentWidget(self._p_arb)
-        elif fase in ("semantic", "run"):
+        elif fase in ("semantic", "tm", "run"):
             if getattr(res, "arb_anotado", None) is not None:
                 self._dock_der.setVisible(True)
                 self._dock_der.raise_()
@@ -791,12 +798,12 @@ class VentanaPrincipal(QMainWindow):
 
             if errores_panel:
                 self._mostrar_panel(self._p_err)
+            elif res.tm:
+                self._mostrar_panel(self._p_tm)
             elif res.sal:
                 self._mostrar_panel(self._p_sal)
             else:
                 self._mostrar_panel(self._p_tok)
-        elif fase == "ir":
-            self._mostrar_panel(self._p_ir)
 
         n_err = len(errores_panel)
         n_err_total = len(res.err)
@@ -811,13 +818,103 @@ class VentanaPrincipal(QMainWindow):
         elif self._editor:
             self._editor.limpiar_errores()
 
+        if fase in ("tm", "run") and not errores_panel and res.ruta_tm:
+            self._set_estado(f"Código TM generado: {os.path.basename(res.ruta_tm)}")
+            if fase == "run":
+                self._ejecutar_tm(res.ruta_tm)
+
+    # ── Ejecución en el simulador TM ───────────────────────────────────
+
+    @staticmethod
+    def _mensaje_ejecucion(res) -> str:
+        """Mensaje comprensible para el usuario según el resultado del simulador."""
+        if res.estado == "CANCELADO":
+            return "Ejecución cancelada: no se introdujo el valor solicitado."
+        if res.estado == "LIMITE":
+            return ("La ejecución se detuvo: el programa superó el número máximo de "
+                    "instrucciones permitidas (posible ciclo infinito).")
+        if "División entre cero" in res.mensaje:
+            return "La ejecución se detuvo: división entre cero."
+        if "memoria" in res.mensaje:
+            return "La ejecución se detuvo: acceso inválido a memoria."
+        return "La ejecución se detuvo por un error."
+
+    def _ejecutar_tm(self, ruta_tm: str):
+        """
+        Ejecuta en el simulador el mismo archivo .tm que se muestra en el
+        panel "Código TM". Cada lectura pide el valor con el diálogo
+        "Entrada de datos"; los resultados aparecen en la pestaña "Salida" y
+        los detalles internos en su registro técnico.
+        """
+        sal = self._p_sal
+        programa = (os.path.basename(self._ruta_arch) if self._ruta_arch
+                    else "programa sin guardar")
+
+        def refrescar():
+            QApplication.processEvents()
+
+        def leer(sol):
+            variable = nombre_variable(sol.comentario)
+            if sol.error_previo:
+                sal.registro(f"  rechazado por el simulador: {sol.error_previo}")
+            aviso = ("El valor anterior no es válido. Escribe un valor del tipo indicado."
+                     if sol.error_previo else "")
+            dlg = DialogoEntrada(variable, sol.tipo, aviso, self)
+            self._colorear_dialogo(dlg)
+            if dlg.exec() != DialogoEntrada.Accepted:
+                sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario}: cancelada")
+                return None
+            valor = dlg.valor()
+            sal.dato_introducido(variable, valor)
+            sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario} <- {valor}")
+            refrescar()
+            return valor
+
+        def escribir(linea: str):
+            sal.resultado(linea)
+            refrescar()
+
+        sal.iniciar_ejecucion(programa)
+        sal.registro(f"Archivo .tm cargado en el simulador: {ruta_tm}")
+        self._mostrar_panel(sal)
+        self._set_estado("Ejecutando TM...")
+        refrescar()
+        try:
+            res = self._servicio.ejecutar_tm(ruta_tm, leer, escribir)
+        except (OSError, ErrorFormatoTM) as ex:
+            sal.fin_con_error("No se pudo cargar el código TM para ejecutarlo.")
+            sal.registro(f"Error al cargar el archivo .tm: {ex}")
+            self._p_err.cargar([Err(tipo="ejecución", linea=0, col=0, msg=str(ex))])
+            self._set_estado("Error al cargar el código TM")
+            return
+
+        sal.registro(f"Estado final: {res.estado} — {res.mensaje}")
+        sal.registro(f"Instrucciones ejecutadas: {res.pasos}")
+        if res.instruccion is not None and not res.correcto:
+            sal.registro(f"Instrucción donde se detuvo: "
+                         f"{res.instruccion.direccion}: {res.instruccion.op} "
+                         f"{res.instruccion.operandos()}")
+        sal.registro(f"pc final: {res.pc}")
+        sal.registro("Registros: " + "  ".join(f"r{i}={v}" for i, v in enumerate(res.registros)))
+
+        if res.correcto:
+            sal.fin_correcto()
+            self._set_estado("Ejecución TM finalizada correctamente")
+        else:
+            mensaje = self._mensaje_ejecucion(res)
+            sal.fin_con_error(mensaje)
+            if res.estado != "CANCELADO":
+                self._p_err.cargar([Err(tipo="ejecución", linea=0, col=0,
+                                        msg=f"{mensaje} Detalle: {res.mensaje}.")])
+            self._set_estado(mensaje)
+
     def _limpiar_paneles(self):
         self._p_tok.limpiar()
         self._p_err.limpiar()
         self._p_sim.limpiar()
         self._p_arb.limpiar()
         self._p_arb_semant.limpiar()
-        self._p_ir.limpiar()
+        self._p_tm.limpiar()
         self._p_sal.limpiar()
         # Quitar subrayados de error del editor activo
         if self._editor:

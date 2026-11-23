@@ -1,0 +1,15 @@
+// Prueba 8 — Potencia (exponente negativo y cero) y módulo con negativos
+main {
+  int a, b;
+  float f;
+  a = 2 ^ (0 - 2);
+  cout << a;
+  f = 2.0 ^ (0 - 2);
+  cout << f;
+  f = 1.5 ^ 2;
+  cout << f;
+  b = (0 - 7) % 3;
+  cout << b;
+  b = 3 ^ 0;
+  cout << b;
+}

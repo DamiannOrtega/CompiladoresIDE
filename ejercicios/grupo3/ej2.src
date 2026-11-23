@@ -1,0 +1,42 @@
+// Grupo 3 - ej2 (selectivo)
+// Dados A, B y C enteros diferentes, escribirlos en forma descendente.
+// Entradas: A, B, C (enteros diferentes)
+main {
+  int a, b, c;
+  cin >> a;
+  cin >> b;
+  cin >> c;
+  if a > b then
+    if b > c then
+      cout << a;
+      cout << b;
+      cout << c;
+    else
+      if a > c then
+        cout << a;
+        cout << c;
+        cout << b;
+      else
+        cout << c;
+        cout << a;
+        cout << b;
+      end
+    end
+  else
+    if a > c then
+      cout << b;
+      cout << a;
+      cout << c;
+    else
+      if b > c then
+        cout << b;
+        cout << c;
+        cout << a;
+      else
+        cout << c;
+        cout << b;
+        cout << a;
+      end
+    end
+  end
+}

@@ -1,0 +1,15 @@
+// Grupo 1 - ej3 (selectivo)
+// Dados tres enteros, determinar si están en orden creciente (1=Sí, 0=No).
+// Entradas: A, B, C (enteros)
+main {
+  int a, b, c, r;
+  cin >> a;
+  cin >> b;
+  cin >> c;
+  if a < b && b < c then
+    r = 1;
+  else
+    r = 0;
+  end
+  cout << "Orden creciente (1=Si, 0=No): " << r;
+}

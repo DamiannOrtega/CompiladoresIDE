@@ -1,0 +1,15 @@
+// Grupo 8 - ej4 (repetitivo)
+// Dados N números enteros, contar cuántos ceros hay; el fin de datos es -1.
+// Entradas: Números enteros, uno por uno, terminando con -1
+main {
+  int x, ceros;
+  ceros = 0;
+  cin >> x;
+  while x != 0 - 1
+    if x == 0 then
+      ceros++;
+    end
+    cin >> x;
+  end
+  cout << "Cantidad de ceros: " << ceros;
+}

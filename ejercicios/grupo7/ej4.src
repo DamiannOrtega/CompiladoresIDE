@@ -1,0 +1,43 @@
+// Grupo 7 - ej4 (repetitivo)
+// Elección con 4 candidatos: contar los votos de cada uno y su porcentaje; los votos terminan con 0.
+// Entradas: Votos (enteros 1 a 4), uno por uno, terminando con 0
+main {
+  int voto, c1, c2, c3, c4, total;
+  c1 = 0;
+  c2 = 0;
+  c3 = 0;
+  c4 = 0;
+  cin >> voto;
+  while voto != 0
+    if voto == 1 then
+      c1++;
+    else
+      if voto == 2 then
+        c2++;
+      else
+        if voto == 3 then
+          c3++;
+        else
+          if voto == 4 then
+            c4++;
+          else
+            cout << "Voto inválido: " << voto;
+          end
+        end
+      end
+    end
+    cin >> voto;
+  end
+  total = c1 + c2 + c3 + c4;
+  cout << "Votos candidato 1: " << c1;
+  cout << "Votos candidato 2: " << c2;
+  cout << "Votos candidato 3: " << c3;
+  cout << "Votos candidato 4: " << c4;
+  cout << "Total de votantes: " << total;
+  if total > 0 then
+    cout << "Porcentaje candidato 1: " << c1 * 100.0 / total;
+    cout << "Porcentaje candidato 2: " << c2 * 100.0 / total;
+    cout << "Porcentaje candidato 3: " << c3 * 100.0 / total;
+    cout << "Porcentaje candidato 4: " << c4 * 100.0 / total;
+  end
+}

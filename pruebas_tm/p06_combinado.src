@@ -1,0 +1,37 @@
+// Prueba 6 — Combinación: ciclos anidados, bool, &&, ||, !, ++, do-until
+main {
+  int n, i, j, cuenta, a, b, t;
+  bool esPrimo;
+  cin >> n;
+  cuenta = 0;
+  i = 2;
+  while i <= n
+    esPrimo = true;
+    j = 2;
+    while j * j <= i && esPrimo
+      if i % j == 0 then
+        esPrimo = false;
+      end
+      j++;
+    end
+    if esPrimo then
+      cout << i;
+      cuenta++;
+    end
+    i++;
+  end
+  cout << "Primos encontrados: " << cuenta;
+  a = 0;
+  b = 1;
+  i = 0;
+  do
+    t = a + b;
+    a = b;
+    b = t;
+    i++;
+  until i >= 10;
+  cout << "Fibonacci(10) = " << a;
+  if !(cuenta > 100) || false then
+    cout << "fin";
+  end
+}

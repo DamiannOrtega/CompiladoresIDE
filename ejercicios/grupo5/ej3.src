@@ -1,0 +1,39 @@
+// Grupo 5 - ej3 (selectivo)
+// Determinar si un alumno es aceptado en una facultad menor: Economía (semestre >= 6 y promedio >= 8.8), Computación (semestre > 6 y promedio > 8.5), Administración y Contabilidad (semestre > 5 y promedio > 8.5).
+// Entradas: Matrícula (entero), carrera (1=Economía, 2=Computación, 3=Administración, 4=Contabilidad), semestre (entero), promedio (real)
+main {
+  int matricula, carrera, semestre;
+  float promedio;
+  bool aceptado;
+  cin >> matricula;
+  cin >> carrera;
+  cin >> semestre;
+  cin >> promedio;
+  aceptado = false;
+  if carrera == 1 then
+    if semestre >= 6 && promedio >= 8.8 then
+      aceptado = true;
+    end
+  else
+    if carrera == 2 then
+      if semestre > 6 && promedio > 8.5 then
+        aceptado = true;
+      end
+    else
+      if carrera == 3 || carrera == 4 then
+        if semestre > 5 && promedio > 8.5 then
+          aceptado = true;
+        end
+      else
+        cout << "Carrera inválida: " << carrera;
+      end
+    end
+  end
+  if aceptado then
+    cout << "Matrícula: " << matricula;
+    cout << "Carrera: " << carrera;
+    cout << "Aceptado=1";
+  else
+    cout << "Aceptado=0";
+  end
+}

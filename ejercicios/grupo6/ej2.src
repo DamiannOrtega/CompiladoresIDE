@@ -1,0 +1,12 @@
+// Grupo 6 - ej2 (selectivo)
+// Escribir aprobado=1 si la calificación es mayor o igual que 8 y reprobado=0 en caso contrario.
+// Entradas: Calificación (real)
+main {
+  float calificacion;
+  cin >> calificacion;
+  if calificacion >= 8 then
+    cout << "aprobado=1";
+  else
+    cout << "reprobado=0";
+  end
+}

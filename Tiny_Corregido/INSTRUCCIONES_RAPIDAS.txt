@@ -1,0 +1,16 @@
+TINY + TM | PASOS RAPIDOS PARA WINDOWS CON VS CODE
+
+1) Extrae TODO el ZIP y abre la carpeta Tiny_Corregido en VS Code.
+2) En la terminal comprueba: gcc --version
+3) Compila: .\compilar_windows.bat
+4) Genera codigo: .\tiny.exe .\ejemplos\factorial.tny
+5) Ejecuta la TM: .\tm.exe .\ejemplos\factorial.tm
+6) En la TM escribe: g [Enter], 5 [Enter], q [Enter].
+   Debe aparecer: OUT instruction prints: 120
+
+La extension .tny es el PROGRAMA FUENTE.
+La extension .tm es el CODIGO QUE EJECUTA LA MAQUINA TM.
+No utilices los ejecutables antiguos MS-DOS del RAR original.
+Los archivos .h estan INCLUIDOS en el ZIP corregido.
+
+Para aprender las funciones de cada archivo, abre LEEME_PRIMERO.md.

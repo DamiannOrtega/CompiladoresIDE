@@ -1,0 +1,34 @@
+// Grupo 4 - ej3 (selectivo)
+// Pago de un trabajador: sueldo más horas extra (máximo 30) según su categoría (1=$30, 2=$38, 3=$50, 4=$70; categoría mayor a 4 no cobra horas extra).
+// Entradas: Sueldo (real), categoría (entero), horas extra (entero)
+main {
+  float sueldo, total;
+  int categoria, horas, precio, pagoExtra;
+  cin >> sueldo;
+  cin >> categoria;
+  cin >> horas;
+  if horas > 30 then
+    horas = 30;
+  end
+  if categoria == 1 then
+    precio = 30;
+  else
+    if categoria == 2 then
+      precio = 38;
+    else
+      if categoria == 3 then
+        precio = 50;
+      else
+        if categoria == 4 then
+          precio = 70;
+        else
+          precio = 0;
+        end
+      end
+    end
+  end
+  pagoExtra = horas * precio;
+  total = sueldo + pagoExtra;
+  cout << "Pago por horas extra: " << pagoExtra;
+  cout << "Total a pagar: " << total;
+}

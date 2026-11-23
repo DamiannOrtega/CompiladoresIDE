@@ -1,0 +1,37 @@
+// Grupo 4 - ej4 (repetitivo)
+// Clasificar las ventas de un vendedor: de $200 o menos, mayores a $200 e inferiores a $400, y de $400 o más.
+// Entradas: N (número de ventas) y el importe de cada venta (reales)
+main {
+  int n, i, c1, c2, c3;
+  float venta, s1, s2, s3;
+  cin >> n;
+  c1 = 0;
+  c2 = 0;
+  c3 = 0;
+  s1 = 0;
+  s2 = 0;
+  s3 = 0;
+  i = 1;
+  while i <= n
+    cin >> venta;
+    if venta <= 200 then
+      c1++;
+      s1 = s1 + venta;
+    else
+      if venta < 400 then
+        c2++;
+        s2 = s2 + venta;
+      else
+        c3++;
+        s3 = s3 + venta;
+      end
+    end
+    i++;
+  end
+  cout << "Ventas de $200 o menos: " << c1;
+  cout << "Importe de esas ventas: " << s1;
+  cout << "Ventas mayores a $200 e inferiores a $400: " << c2;
+  cout << "Importe de esas ventas: " << s2;
+  cout << "Ventas de $400 o superiores: " << c3;
+  cout << "Importe de esas ventas: " << s3;
+}

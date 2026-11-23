@@ -1,0 +1,26 @@
+// Grupo 9 - ej4 (repetitivo)
+// Leer M y obtener y contar todos los números primos menores a M.
+// Entradas: M (entero)
+main {
+  int m, i, j, cuenta;
+  bool esPrimo;
+  cin >> m;
+  cuenta = 0;
+  i = 2;
+  while i < m
+    esPrimo = true;
+    j = 2;
+    while j * j <= i && esPrimo
+      if i % j == 0 then
+        esPrimo = false;
+      end
+      j++;
+    end
+    if esPrimo then
+      cout << i;
+      cuenta++;
+    end
+    i++;
+  end
+  cout << "Cantidad de primos menores a M: " << cuenta;
+}

@@ -1,0 +1,11 @@
+// Grupo 12 - ej1 (secuencial)
+// Dados A y B enteros, escribir el resultado de (A + B)^2 / 3.
+// Entradas: A, B (enteros)
+main {
+  int a, b;
+  float resultado;
+  cin >> a;
+  cin >> b;
+  resultado = (a + b) ^ 2 / 3.0;
+  cout << "(A + B)^2 / 3 = " << resultado;
+}

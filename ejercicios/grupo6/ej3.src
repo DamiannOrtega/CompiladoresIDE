@@ -1,0 +1,38 @@
+// Grupo 6 - ej3 (selectivo)
+// Costo total de internación de un paciente según el tipo de enfermedad (1=$25, 2=$16, 3=$20, 4=$32 por día), con 10% adicional si tiene entre 14 y 22 años.
+// Entradas: Tipo de enfermedad (1-4), días internado, edad (enteros)
+main {
+  int tipo, dias, edad, costoDia;
+  float total;
+  bool valido;
+  cin >> tipo;
+  cin >> dias;
+  cin >> edad;
+  valido = true;
+  if tipo == 1 then
+    costoDia = 25;
+  else
+    if tipo == 2 then
+      costoDia = 16;
+    else
+      if tipo == 3 then
+        costoDia = 20;
+      else
+        if tipo == 4 then
+          costoDia = 32;
+        else
+          valido = false;
+        end
+      end
+    end
+  end
+  if valido then
+    total = costoDia * dias;
+    if edad >= 14 && edad <= 22 then
+      total = total * 1.10;
+    end
+    cout << "Costo total del paciente: " << total;
+  else
+    cout << "Tipo de enfermedad inválido: " << tipo;
+  end
+}

@@ -1,0 +1,20 @@
+// Grupo 11 - ej4 (repetitivo)
+// Conjetura de ULAM: leer un entero positivo e imprimir la sucesión hasta llegar a 1.
+// Entradas: N (entero positivo)
+main {
+  int n;
+  cin >> n;
+  if n > 0 then
+    cout << n;
+    while n != 1
+      if n % 2 == 0 then
+        n = n / 2;
+      else
+        n = n * 3 + 1;
+      end
+      cout << n;
+    end
+  else
+    cout << "Debe ser un entero positivo";
+  end
+}

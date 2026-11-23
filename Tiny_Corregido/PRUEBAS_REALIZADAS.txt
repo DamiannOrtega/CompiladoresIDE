@@ -1,0 +1,20 @@
+Comprobaciones del proyecto TINY - TM corregido
+
+Entorno de verificacion: Linux + GCC, std=c11, -Wall -Wextra -Wpedantic -Werror
+
+1. Compilacion de tiny: OK, sin errores ni advertencias.
+2. Compilacion de tm: OK, sin errores ni advertencias.
+3. TINY factorial.tny -> factorial.tm: OK (42 instrucciones, 0-41).
+4. Ejecucion TM factorial con entrada 5: 120, OK.
+5. Ejecucion TM factorial con entrada 3: 6, OK.
+6. Ejecucion TM factorial con entrada 0: sin imprimir factorial, OK.
+7. Ejecucion TM factorial con entrada -2: sin imprimir factorial, OK.
+8. Expresiones (x+1)*(x-2), x=5 -> 18, OK.
+9. Expresiones (x+1)*(x-2), x=2 -> 0, OK.
+10. Condicional if/else x=2 -> 1, OK.
+11. Condicional if/else x=3 -> 2, OK.
+12. Ciclo repeat/until x=3 -> 0, OK.
+13. Error semantico de if x: bloquea creacion de .tm, OK.
+
+Nota: la compatibilidad con Windows se ha preparado mediante GCC y .bat,
+pero no se ejecuto realmente Windows en esta sesion.

@@ -1,0 +1,29 @@
+// Grupo 10 - ej2 (selectivo)
+// Aumento de sueldo por categoría (1=15%, 2=10%, 3=8%, 4=7%); imprimir la categoría y el nuevo sueldo.
+// Entradas: Categoría (entero), sueldo (real)
+main {
+  int categoria;
+  float sueldo, nuevo;
+  cin >> categoria;
+  cin >> sueldo;
+  if categoria == 1 then
+    nuevo = sueldo * 1.15;
+  else
+    if categoria == 2 then
+      nuevo = sueldo * 1.10;
+    else
+      if categoria == 3 then
+        nuevo = sueldo * 1.08;
+      else
+        if categoria == 4 then
+          nuevo = sueldo * 1.07;
+        else
+          nuevo = sueldo;
+          cout << "Categoría inválida, sin aumento";
+        end
+      end
+    end
+  end
+  cout << "Categoría: " << categoria;
+  cout << "Nuevo sueldo: " << nuevo;
+}

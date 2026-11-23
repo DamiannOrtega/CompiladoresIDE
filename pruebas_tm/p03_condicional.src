@@ -1,0 +1,17 @@
+// Prueba 3 — if / else anidados y módulo
+main {
+  int n;
+  cin >> n;
+  if n > 0 then
+    cout << "positivo";
+  else
+    if n < 0 then
+      cout << "negativo";
+    else
+      cout << "cero";
+    end
+  end
+  if n % 2 == 0 then
+    cout << "par";
+  end
+}

@@ -61,6 +61,22 @@ class ErrorSintactico:
         }
 
 
+# ── Estructura de un error de generación de código TM (Fase final) ───────────
+
+ERR_GENERACION = "Error de generación de código TM"
+
+
+@dataclass
+class ErrorGeneracion:
+    """Construcción del árbol que no puede traducirse a instrucciones TM."""
+    msg: str
+    linea: int = 0
+    error: str = ERR_GENERACION
+
+    def to_dict(self) -> dict:
+        return {"error": self.error, "msg": self.msg, "linea": self.linea}
+
+
 # ── Estructura de un error semántico ─────────────────────────────────────────
 
 @dataclass

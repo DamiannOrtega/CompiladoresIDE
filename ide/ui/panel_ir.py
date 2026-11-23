@@ -15,7 +15,10 @@ class PanelIr(QWidget):
 
         self._txt = QPlainTextEdit()
         self._txt.setReadOnly(True)
-        self._txt.setPlaceholderText("El código intermedio aparecerá aquí...")
+        self._txt.setPlaceholderText(
+            "Código intermedio de tres direcciones (.ci). "
+            "Las instrucciones de la máquina TM se muestran en la pestaña \"Código TM\"."
+        )
         lay.addWidget(self._txt)
 
     def cargar(self, texto: str):

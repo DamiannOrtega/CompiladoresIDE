@@ -1,0 +1,37 @@
+// Grupo 1 - ej5 (repetitivo)
+// Lluvias mensuales de las regiones NORTE, CENTRO y SUR: a) promedio anual del centro, b) mes y registro con menor lluvia en el sur, c) región con mayor lluvia anual.
+// Entradas: Para cada mes del 1 al 12: lluvia NORTE, CENTRO, SUR (reales)
+main {
+  int mes, mesMin;
+  float norte, centro, sur, sumaNorte, sumaCentro, sumaSur, minSur, promCentro;
+  sumaNorte = 0;
+  sumaCentro = 0;
+  sumaSur = 0;
+  mes = 1;
+  while mes <= 12
+    cin >> norte;
+    cin >> centro;
+    cin >> sur;
+    sumaNorte = sumaNorte + norte;
+    sumaCentro = sumaCentro + centro;
+    sumaSur = sumaSur + sur;
+    if mes == 1 || sur < minSur then
+      minSur = sur;
+      mesMin = mes;
+    end
+    mes++;
+  end
+  promCentro = sumaCentro / 12;
+  cout << "Promedio anual de la región CENTRO: " << promCentro;
+  cout << "Mes con menor lluvia en la región SUR: " << mesMin;
+  cout << "Registro de menor lluvia en la región SUR: " << minSur;
+  if sumaNorte > sumaCentro && sumaNorte > sumaSur then
+    cout << "Región con mayor lluvia anual: NORTE";
+  else
+    if sumaCentro > sumaSur then
+      cout << "Región con mayor lluvia anual: CENTRO";
+    else
+      cout << "Región con mayor lluvia anual: SUR";
+    end
+  end
+}

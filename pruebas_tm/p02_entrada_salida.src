@@ -1,0 +1,11 @@
+// Prueba 2 — Lectura, escritura con texto y real
+main {
+  int a, b;
+  float promedio;
+  cin >> a;
+  cin >> b;
+  cout << "Suma: " << a + b;
+  cout << "Producto: " << a * b;
+  promedio = (a + b) / 2.0;
+  cout << "Promedio: " << promedio;
+}

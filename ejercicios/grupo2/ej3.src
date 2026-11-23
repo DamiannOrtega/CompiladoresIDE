@@ -1,0 +1,23 @@
+// Grupo 2 - ej3 (selectivo)
+// Impuesto: los primeros $20 sin impuesto, los siguientes $20 al 30% y el resto al 40% (50% si el costo es mayor a $500). Calcular el precio total.
+// Entradas: Costo básico (real)
+main {
+  float costo, impuesto, total;
+  cin >> costo;
+  if costo <= 20 then
+    impuesto = 0;
+  else
+    if costo <= 40 then
+      impuesto = (costo - 20) * 0.3;
+    else
+      if costo > 500 then
+        impuesto = 20 * 0.3 + (costo - 40) * 0.5;
+      else
+        impuesto = 20 * 0.3 + (costo - 40) * 0.4;
+      end
+    end
+  end
+  total = costo + impuesto;
+  cout << "Impuesto: " << impuesto;
+  cout << "Precio total: " << total;
+}

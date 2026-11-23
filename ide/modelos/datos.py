@@ -69,3 +69,5 @@ class ResultadoCompilacion:
     arb_anotado: NodoArb = None
     ir: str = ""
     sal: str = ""
+    tm: str = ""        # contenido del archivo .tm generado (leído del disco)
+    ruta_tm: str = ""   # ruta del archivo .tm que se muestra y se ejecuta

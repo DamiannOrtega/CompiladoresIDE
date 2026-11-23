@@ -1,0 +1,12 @@
+// Grupo 4 - ej1 (secuencial)
+// Convertir el peso de un dinosaurio de libras a kilogramos y su longitud de pies a metros.
+// Entradas: Peso en libras, longitud en pies (reales)
+main {
+  float libras, pies, kilos, metros;
+  cin >> libras;
+  cin >> pies;
+  kilos = libras * 0.4536;
+  metros = pies * 0.3048;
+  cout << "Peso en kilogramos: " << kilos;
+  cout << "Longitud en metros: " << metros;
+}

@@ -1,0 +1,29 @@
+// Grupo 5 - ej4 (repetitivo)
+// Dados N números enteros, calcular y mostrar el mayor y el menor.
+// Entradas: N y luego los N números enteros
+main {
+  int n, i, x, mayor, menor;
+  cin >> n;
+  i = 1;
+  while i <= n
+    cin >> x;
+    if i == 1 then
+      mayor = x;
+      menor = x;
+    else
+      if x > mayor then
+        mayor = x;
+      end
+      if x < menor then
+        menor = x;
+      end
+    end
+    i++;
+  end
+  if n > 0 then
+    cout << "Mayor: " << mayor;
+    cout << "Menor: " << menor;
+  else
+    cout << "No se proporcionaron números";
+  end
+}

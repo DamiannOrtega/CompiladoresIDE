@@ -1,0 +1,14 @@
+// Grupo 2 - ej2 (selectivo)
+// Temperatura con el grillo: T = N / 4 + 40 (N = sonidos por minuto).
+// Entradas: N (entero, sonidos por minuto)
+main {
+  int n;
+  float t;
+  cin >> n;
+  if n >= 0 then
+    t = n / 4.0 + 40;
+    cout << "Temperatura en grados Fahrenheit: " << t;
+  else
+    cout << "El número de sonidos no puede ser negativo";
+  end
+}

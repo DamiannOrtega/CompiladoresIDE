@@ -1,0 +1,13 @@
+// Prueba 5 — Factorial con do-until (equivalente a factorial.tny de TINY)
+main {
+  int x, fact;
+  cin >> x;
+  fact = 1;
+  if 0 < x then
+    do
+      fact = fact * x;
+      x--;
+    until x == 0;
+    cout << fact;
+  end
+}

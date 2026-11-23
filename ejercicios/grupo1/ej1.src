@@ -1,0 +1,14 @@
+// Grupo 1 - ej1 (secuencial)
+// Dados A, B, C y D enteros, escribirlos en orden inverso.
+// Entradas: A, B, C, D (enteros)
+main {
+  int a, b, c, d;
+  cin >> a;
+  cin >> b;
+  cin >> c;
+  cin >> d;
+  cout << d;
+  cout << c;
+  cout << b;
+  cout << a;
+}

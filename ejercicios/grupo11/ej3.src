@@ -1,0 +1,42 @@
+// Grupo 11 - ej3 (selectivo)
+// Costo de una llamada internacional según la clave de zona (12=$2, 15=$2.2, 18=$4.5, 19=$3.5, 23=$6, 25=$6, 29=$5 por minuto).
+// Entradas: Clave de zona (entero), minutos (entero)
+main {
+  int clave, minutos;
+  float precio, costo;
+  bool valida;
+  cin >> clave;
+  cin >> minutos;
+  valida = true;
+  if clave == 12 then
+    precio = 2;
+  else
+    if clave == 15 then
+      precio = 2.2;
+    else
+      if clave == 18 then
+        precio = 4.5;
+      else
+        if clave == 19 then
+          precio = 3.5;
+        else
+          if clave == 23 || clave == 25 then
+            precio = 6;
+          else
+            if clave == 29 then
+              precio = 5;
+            else
+              valida = false;
+            end
+          end
+        end
+      end
+    end
+  end
+  if valida then
+    costo = precio * minutos;
+    cout << "Costo total de la llamada: " << costo;
+  else
+    cout << "Clave de zona inválida: " << clave;
+  end
+}

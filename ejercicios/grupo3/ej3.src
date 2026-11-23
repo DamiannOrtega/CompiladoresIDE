@@ -1,0 +1,23 @@
+// Grupo 3 - ej3 (selectivo)
+// Dados tres números reales, identificar cuál es el mayor (pueden ser iguales).
+// Entradas: A, B, C (reales)
+main {
+  float a, b, c, mayor;
+  cin >> a;
+  cin >> b;
+  cin >> c;
+  if a == b && b == c then
+    cout << "Los tres números son iguales: " << a;
+  else
+    if a >= b && a >= c then
+      mayor = a;
+    else
+      if b >= c then
+        mayor = b;
+      else
+        mayor = c;
+      end
+    end
+    cout << "El mayor es: " << mayor;
+  end
+}

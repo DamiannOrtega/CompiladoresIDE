@@ -1,0 +1,8 @@
+// Error sintáctico: falta ';' y 'end'
+main {
+  int x;
+  x = 3
+  while x > 0
+    x--;
+  cout << x;
+}

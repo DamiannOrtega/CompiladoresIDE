@@ -1,0 +1,12 @@
+// Grupo 9 - ej1 (secuencial)
+// Dados el radio y la altura de un cilindro, calcular Volumen = pi * radio^2 * altura y Área = 2 * pi * radio * altura.
+// Entradas: Radio, altura (reales)
+main {
+  float radio, altura, volumen, area;
+  cin >> radio;
+  cin >> altura;
+  volumen = 3.14159 * radio ^ 2 * altura;
+  area = 2 * 3.14159 * radio * altura;
+  cout << "Área: " << area;
+  cout << "Volumen: " << volumen;
+}

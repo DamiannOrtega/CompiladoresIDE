@@ -1,0 +1,14 @@
+// Grupo 3 - ej4 (repetitivo)
+// Leer N y calcular la suma de la serie 1^1 + 2^2 + 3^3 + ... + N^N.
+// Entradas: N (entero)
+main {
+  int n, i, suma;
+  cin >> n;
+  suma = 0;
+  i = 1;
+  while i <= n
+    suma = suma + i ^ i;
+    i++;
+  end
+  cout << "Suma de la serie: " << suma;
+}

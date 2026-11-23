@@ -1,0 +1,5 @@
+// Error léxico: carácter inválido
+main {
+  int x;
+  x = 3 @ 4;
+}

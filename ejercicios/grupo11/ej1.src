@@ -1,0 +1,10 @@
+// Grupo 11 - ej1 (secuencial)
+// Dado el costo de un artículo y el dinero entregado por el cliente, calcular el cambio.
+// Entradas: Costo, dinero entregado (reales)
+main {
+  float costo, pago, cambio;
+  cin >> costo;
+  cin >> pago;
+  cambio = pago - costo;
+  cout << "Cambio a entregar: " << cambio;
+}
