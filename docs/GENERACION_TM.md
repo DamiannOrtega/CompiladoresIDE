@@ -6,19 +6,22 @@ ejecución en un simulador escrito en Python.
 ## Flujo
 
 ```
-fuente → léxico → sintáctico → árbol → semántico ─┬─ (errores) → no se genera .tm
-                                                   └─ sin errores → generador_tm → outputs/<programa>.tm
-                                                                    → panel "Código TM"
-                                                                    → maquina_tm ejecuta ESE archivo
+fuente → léxico → sintáctico → árbol → semántico ─┬─ (errores) → no se genera .ci ni .tm
+                                                   └─ sin errores ─┬─ generador_ci → outputs/<programa>.ci
+                                                                   │                 → pestaña "Código intermedio"
+                                                                   └─ generador_tm → outputs/<programa>.tm
+                                                                                     → pestaña "Código TM"
+                                                                                     → maquina_tm ejecuta ESE archivo
 ```
 
 - Si hay errores léxicos, sintácticos, semánticos o de generación, no se
-  produce `.tm` y se borra cualquier `.tm` anterior con ese nombre.
+  produce `.ci` ni `.tm` y se borran los anteriores con ese nombre.
 - El panel "Código TM" muestra el texto leído del disco, y el simulador
   carga ese mismo archivo: lo que se ve es lo que se ejecuta.
-- El `.ci` (código intermedio de tres direcciones) es una extensión didáctica
-  opcional del PDF y no está implementado; por eso la interfaz no tiene una
-  pestaña para él. El simulador nunca recibe código intermedio, sólo el `.tm`.
+- El `.ci` (código intermedio de tres direcciones: `t1 = a + b`,
+  `if_false t1 goto L1`, `label`, `read`, `write`) y el `.tm` salen del mismo
+  árbol por caminos paralelos, como indica el PDF. El `.ci` usa temporales y
+  etiquetas simbólicas; el simulador nunca lo recibe, sólo el `.tm`.
 
 ## Archivos
 
@@ -26,12 +29,14 @@ fuente → léxico → sintáctico → árbol → semántico ─┬─ (errores)
 |---|---|
 | `ide/compilador/tm_formato.py` | Conjunto de instrucciones, registros, formato de línea, escritura y lectura del `.tm`. Lo comparten el generador y el simulador |
 | `ide/compilador/generador_tm.py` | `EmisorTM` (como `code.c`: numeración, comentarios, reserva y ajuste de saltos) y `GeneradorTM` (como `cgen.c`: recorrido del `NodoArb`) |
+| `ide/compilador/generador_ci.py` | Código intermedio de tres direcciones (`.ci`) a partir del mismo `NodoArb`: temporales `t1, t2…`, etiquetas `L1, L2…`, `if_false`/`goto`, `read`/`write` |
+| `ide/ui/panel_ir.py` | Pestaña "Código intermedio": muestra el `.ci` |
 | `ide/compilador/maquina_tm.py` | Simulador (como `tm.c`). Uso por consola: `python -m ide.compilador.maquina_tm archivo.tm [--traza]` |
-| `ide/servicios/compilador.py` | Fases `tm` y `run`: generan y escriben el `.tm`; `ejecutar_tm()` lo ejecuta |
+| `ide/servicios/compilador.py` | Fases `ir`, `tm` y `run`: generan y escriben el `.ci` y el `.tm`; `ejecutar_tm()` ejecuta el `.tm` |
 | `ide/ui/panel_tm.py` | Pestaña "Código TM": tabla Dirección/Instrucción/Operandos/Comentario y vista del archivo |
-| `ide/ventana.py` | F8 "Generar Código TM", F9 "Ejecutar TM". `_WorkerEjecucion` corre el simulador en un hilo: en cada IN la máquina queda en pausa (registros, memoria y pc intactos) hasta que el usuario envía el dato desde la consola |
+| `ide/ventana.py` | F8 "Generar código" (intermedio y TM), F9 "Ejecutar TM". `_WorkerEjecucion` corre el simulador en un hilo: en cada IN la máquina queda en pausa (registros, memoria y pc intactos) hasta que el usuario envía el dato desde la consola |
 | `ide/ui/panel_sal.py` | Pestaña "Salida": consola interactiva (solicitudes de datos, valores introducidos, resultados, errores), campo "Enviar" que aparece sólo cuando el programa pide un dato, botón "Detener" y un "Registro técnico" desplegable |
-| `runner.py` | La CLI genera el `.tm`; con `--ejecutar` también lo ejecuta |
+| `runner.py` | La CLI genera el `.ci` y el `.tm`; con `--ejecutar` también ejecuta el `.tm` |
 | `pruebas_tm/` | Programas de prueba y `test_tm.py` (`python -m unittest pruebas_tm.test_tm -v`) |
 
 ## Registros y memoria
@@ -105,4 +110,5 @@ corre sin cambios en `Tiny_Corregido/tm.exe`. La prueba
 - El lenguaje no tiene menos unario (`-5`); se escribe `0 - 5`.
 - `a ++ b` / `a -- b` como operadores binarios pasan el análisis semántico sin
   tipo; el generador los reporta como error de generación.
-- La generación de `.ci` no está implementada (en el PDF es opcional).
+- El `.ci` se presenta para estudio: no se optimiza (cada operación usa un
+  temporal nuevo) y no se ejecuta; la ejecución siempre es del `.tm`.

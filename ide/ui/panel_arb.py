@@ -7,12 +7,13 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QTreeWidget, QTreeWidgetItem, QPushButton, QLabel, QFrame,
-    QMainWindow, QHeaderView, QFileDialog, QMessageBox,
+    QMainWindow, QHeaderView, QFileDialog, QMessageBox, QSizePolicy,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 
 from ide.modelos.datos import NodoArb
+from ide.ui.etiqueta import EtiquetaRecortable
 
 
 # ── Mapas de metadatos por tipo de nodo ──────────────────────────────────────
@@ -88,27 +89,28 @@ class PanelArb(QWidget):
         blay.setContentsMargins(8, 5, 8, 5)
         blay.setSpacing(6)
 
-        titulo = QLabel(self._titulo_texto)
+        # El título se recorta con "…" si falta espacio: no fuerza el ancho del panel
+        titulo = EtiquetaRecortable(self._titulo_texto)
         titulo.setStyleSheet("font-weight: 600;")
         blay.addWidget(titulo)
         blay.addStretch()
 
-        _btn_css = "padding: 2px 10px; border-radius: 3px;"
+        _btn_css = "padding: 2px 6px; border-radius: 3px;"
 
-        self._btn_exp = QPushButton("Expandir todo")
+        self._btn_exp = QPushButton("Expandir")
         self._btn_exp.setStyleSheet(_btn_css)
         self._btn_exp.setToolTip("Expandir todos los nodos del árbol")
         self._btn_exp.clicked.connect(self._expandir_todo)
         blay.addWidget(self._btn_exp)
 
-        self._btn_col = QPushButton("Colapsar todo")
+        self._btn_col = QPushButton("Colapsar")
         self._btn_col.setStyleSheet(_btn_css)
         self._btn_col.setToolTip("Colapsar todos los nodos del árbol")
         self._btn_col.clicked.connect(self._colapsar_todo)
         blay.addWidget(self._btn_col)
 
         if not self._standalone:
-            self._btn_win = QPushButton("Abrir en ventana")
+            self._btn_win = QPushButton("Ventana")
             self._btn_win.setStyleSheet(_btn_css)
             self._btn_win.setToolTip(
                 "Abre el árbol en una ventana independiente para visualización a pantalla completa"
@@ -116,7 +118,7 @@ class PanelArb(QWidget):
             self._btn_win.clicked.connect(self._abrir_en_ventana)
             blay.addWidget(self._btn_win)
 
-            self._btn_export = QPushButton("Exportar AST...")
+            self._btn_export = QPushButton("Exportar...")
             self._btn_export.setStyleSheet(_btn_css)
             self._btn_export.setToolTip("Guarda el árbol sintáctico como archivo de texto (.txt)")
             self._btn_export.clicked.connect(self._exportar_ast)

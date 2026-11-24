@@ -6,9 +6,9 @@ import threading
 import ctypes.wintypes
 from PySide6.QtWidgets import (
     QMainWindow, QDockWidget, QTabWidget, QTabBar, QWidget,
-    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication,
+    QLabel, QFileDialog, QMessageBox, QToolBar, QStatusBar, QApplication, QSizePolicy,
 )
-from PySide6.QtCore import Qt, QSize, QPoint, QMimeData, QObject, QThread, Signal
+from PySide6.QtCore import Qt, QSize, QPoint, QMimeData, QObject, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QDrag, QPixmap, QPainter
 
 from ide.ui.editor import EditorCodigo
@@ -18,6 +18,7 @@ from ide.ui.panel_sim import PanelSim
 from ide.ui.panel_arb import PanelArb
 from ide.ui.panel_sal import PanelSal
 from ide.ui.panel_tm import PanelTm
+from ide.ui.panel_ir import PanelIr
 from ide.ui.panel_sal import nombre_variable, mensaje_valor_invalido
 from ide.ui.panel_archivos import PanelArchivos
 from ide.modelos.datos import Err
@@ -171,7 +172,7 @@ class TabsArrastrables(QTabWidget):
 
     # ── Tear-off: sacar la pestaña como dock flotante ──────────────────
 
-    _ORDEN = ["Tokens", "Código TM", "Errores", "Salida"]
+    _ORDEN = ["Tokens", "Código intermedio", "Código TM", "Errores", "Salida"]
 
     def _iniciar_tear_off(self, idx: int):
         if idx < 0 or idx >= self.count():
@@ -330,6 +331,7 @@ class VentanaPrincipal(QMainWindow):
         self._p_sim  = PanelSim()
         self._p_arb  = PanelArb(titulo="Árbol Sintáctico (Original)")
         self._p_arb_semant = PanelArb(titulo="Árbol Anotado (Semántico)")
+        self._p_ir   = PanelIr()
         self._p_tm   = PanelTm()
         self._p_sal  = PanelSal()
         self._p_arch = PanelArchivos()
@@ -363,7 +365,7 @@ class VentanaPrincipal(QMainWindow):
         self._acc_lexico  = self._accion("Análisis Léxico",     "F5",  m_comp)
         self._acc_sintac  = self._accion("Análisis Sintáctico", "F6",  m_comp)
         self._acc_semant  = self._accion("Análisis Semántico",  "F7",  m_comp)
-        self._acc_ir      = self._accion("Generar Código TM",   "F8",  m_comp)
+        self._acc_ir      = self._accion("Generar Código (intermedio y TM)", "F8", m_comp)
         m_comp.addSeparator()
         self._acc_ejec    = self._accion("Ejecutar TM",         "F9",  m_comp)
         m_comp.addSeparator()
@@ -420,6 +422,30 @@ class VentanaPrincipal(QMainWindow):
         acc_abj.setShortcut(QKeySequence("Alt+3"))
         m_paneles.addAction(acc_abj)
 
+        m_paneles.addSeparator()
+        self._acc_restablecer = self._accion("Restablecer distribución", "Alt+0", m_paneles)
+        self._acc_restablecer.triggered.connect(self._restablecer_paneles)
+
+        # Botones en la barra de herramientas (a la derecha) para mostrar u
+        # ocultar cada panel; son las mismas acciones del menú Ver > Paneles.
+        espacio = QWidget()
+        espacio.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        espacio.setStyleSheet("background: transparent; border: none;")
+        self._tb.addWidget(espacio)
+        for acc, tip in (
+            (acc_izq, "Mostrar u ocultar el Explorador de archivos (Alt+1)"),
+            (acc_der, "Mostrar u ocultar el panel de Análisis: árboles y tabla de símbolos (Alt+2)"),
+            (acc_abj, "Mostrar u ocultar los Resultados: tokens, código, errores y salida (Alt+3)"),
+        ):
+            acc.setToolTip(tip)
+            self._tb.addAction(acc)
+
+        # Recordar qué paneles cerró el usuario para no reabrirlos al compilar
+        self._ocultos = {}
+        for dock in (self._dock_izq, self._dock_der, self._dock_abj):
+            dock.visibilityChanged.connect(
+                lambda visible, d=dock: self._dock_visibilidad(d, visible))
+
         m_ver.addSeparator()
 
         # ── Zoom del editor ──
@@ -473,6 +499,7 @@ class VentanaPrincipal(QMainWindow):
         tb.setIconSize(QSize(16, 16))
         tb.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.addToolBar(tb)
+        self._tb = tb
 
         # Acciones de archivo
         tb.addAction(self._acc_nuevo)
@@ -485,7 +512,7 @@ class VentanaPrincipal(QMainWindow):
             (self._acc_lexico, "Léxico"),
             (self._acc_sintac, "Sintáctico"),
             (self._acc_semant, "Semántico"),
-            (self._acc_ir,     "Código TM"),
+            (self._acc_ir,     "Generar código"),
             (self._acc_ejec,   "Ejecutar TM"),
         ]
         for acc, etiq in fases:
@@ -535,6 +562,7 @@ class VentanaPrincipal(QMainWindow):
         # ── Abajo: Tokens, IR, Errores, Salida ──
         self._tabs_abj = TabsArrastrables(self)
         self._tabs_abj.addTab(self._p_tok, "Tokens")
+        self._tabs_abj.addTab(self._p_ir,  "Código intermedio")
         self._tabs_abj.addTab(self._p_tm,  "Código TM")
         self._tabs_abj.addTab(self._p_err, "Errores")
         self._tabs_abj.addTab(self._p_sal, "Salida")
@@ -544,10 +572,51 @@ class VentanaPrincipal(QMainWindow):
         self._dock_abj.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
         self.addDockWidget(Qt.BottomDockWidgetArea, self._dock_abj)
 
-        # Tamaños iniciales
-        self.resizeDocks([self._dock_izq], [220], Qt.Horizontal)
-        self.resizeDocks([self._dock_der], [400], Qt.Horizontal)
-        self.resizeDocks([self._dock_abj], [200], Qt.Vertical)
+        # Tamaños iniciales (se ajustan al tamaño real de la ventana al mostrarse)
+        self._tamanos_iniciales()
+
+    # ── Distribución de paneles ───────────────────────────────────────
+
+    def _tamanos_iniciales(self):
+        """Reparte el espacio dando prioridad al editor de código."""
+        ancho, alto = max(self.width(), 900), max(self.height(), 600)
+        izq = int(min(max(ancho * 0.15, 170), 260))
+        der = int(min(max(ancho * 0.25, 280), 420))
+        abj = int(min(max(alto * 0.30, 180), 300))
+        self.resizeDocks([self._dock_izq, self._dock_der], [izq, der], Qt.Horizontal)
+        self.resizeDocks([self._dock_abj], [abj], Qt.Vertical)
+
+    def showEvent(self, evento):
+        super().showEvent(evento)
+        if not getattr(self, "_distribucion_lista", False):
+            self._distribucion_lista = True
+            # Esperar a que se aplique el maximizado antes de repartir el espacio
+            QTimer.singleShot(0, self._tamanos_iniciales)
+
+    def _restablecer_paneles(self):
+        """Muestra y reacomoda todos los paneles en su posición original."""
+        for dock, area in ((self._dock_izq, Qt.LeftDockWidgetArea),
+                           (self._dock_der, Qt.RightDockWidgetArea),
+                           (self._dock_abj, Qt.BottomDockWidgetArea)):
+            dock.setFloating(False)
+            self.addDockWidget(area, dock)
+            dock.setVisible(True)
+        self._ocultos.clear()
+        self._tamanos_iniciales()
+        self._set_estado("Distribución de paneles restablecida")
+
+    def _dock_visibilidad(self, dock, visible: bool):
+        # isHidden() distingue un cierre del usuario de una ventana minimizada
+        if visible:
+            self._ocultos[dock] = False
+        elif dock.isHidden() and not self.isMinimized():
+            self._ocultos[dock] = True
+
+    def _mostrar_dock(self, dock, forzar: bool = False):
+        """Muestra un panel, salvo que el usuario lo haya ocultado (o si se fuerza)."""
+        if forzar or not self._ocultos.get(dock, False):
+            dock.setVisible(True)
+            dock.raise_()
 
     # ── Conexión de señales ───────────────────────────────────────────
 
@@ -614,6 +683,7 @@ class VentanaPrincipal(QMainWindow):
         # indexOf devuelve -1 cuando el widget no está en el tab bar
         if self._tabs_abj.indexOf(panel) >= 0:
             self._tabs_abj.setCurrentWidget(panel)
+            self._mostrar_dock(self._dock_abj)
 
     def actualizar_check_tema(self, nombre: str):
         """Marca el tema activo en el menú Ver → Tema."""
@@ -836,6 +906,8 @@ class VentanaPrincipal(QMainWindow):
             self._p_arb.cargar(res.arb, errores_sint)
         if getattr(res, "arb_anotado", None):
             self._p_arb_semant.cargar(res.arb_anotado, errores_sem)
+        if res.ir:
+            self._p_ir.cargar(res.ir, res.ruta_ci)
         if res.tm:
             self._p_tm.cargar(res.tm, res.ruta_tm)
         if res.sal:
@@ -846,22 +918,19 @@ class VentanaPrincipal(QMainWindow):
         elif fase == "syntax":
             self._mostrar_panel(self._p_tok)
             if res.arb is not None:
-                self._dock_der.setVisible(True)
-                self._dock_der.raise_()
+                self._mostrar_dock(self._dock_der)
                 self._tabs_der.setCurrentWidget(self._p_arb)
         elif fase in ("semantic", "tm", "run"):
             if getattr(res, "arb_anotado", None) is not None:
-                self._dock_der.setVisible(True)
-                self._dock_der.raise_()
+                self._mostrar_dock(self._dock_der)
                 self._tabs_der.setCurrentWidget(self._p_arb_semant)
             elif res.arb is not None:
-                self._dock_der.setVisible(True)
-                self._dock_der.raise_()
+                self._mostrar_dock(self._dock_der)
                 self._tabs_der.setCurrentWidget(self._p_arb)
 
             # Mostrar tabla de símbolos en el panel de análisis (derecha)
             if res.sim:
-                self._dock_der.setVisible(True)
+                self._mostrar_dock(self._dock_der)
                 self._tabs_der.setCurrentWidget(self._p_sim)
 
             if errores_panel:
@@ -887,7 +956,8 @@ class VentanaPrincipal(QMainWindow):
             self._editor.limpiar_errores()
 
         if fase in ("tm", "run") and not errores_panel and res.ruta_tm:
-            self._set_estado(f"Código TM generado: {os.path.basename(res.ruta_tm)}")
+            self._set_estado(f"Código intermedio y código TM generados: "
+                             f"{os.path.basename(res.ruta_ci)}, {os.path.basename(res.ruta_tm)}")
             if fase == "run":
                 self._ejecutar_tm(res.ruta_tm)
 
@@ -929,6 +999,8 @@ class VentanaPrincipal(QMainWindow):
 
         sal.iniciar_ejecucion(programa)
         sal.registro(f"Archivo .tm cargado en el simulador: {ruta_tm}")
+        # La consola es necesaria para escribir los datos: se muestra siempre
+        self._mostrar_dock(self._dock_abj, forzar=True)
         self._mostrar_panel(sal)
         self._set_estado("Ejecutando TM...")
 
@@ -976,6 +1048,7 @@ class VentanaPrincipal(QMainWindow):
             sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario}: esperando valor")
             sal.solicitar(variable, sol.tipo)
         self._solicitud_actual = sol
+        self._mostrar_dock(self._dock_abj, forzar=True)
         self._mostrar_panel(sal)
         self._set_estado("Esperando entrada...")
 
@@ -1036,6 +1109,7 @@ class VentanaPrincipal(QMainWindow):
         self._p_sim.limpiar()
         self._p_arb.limpiar()
         self._p_arb_semant.limpiar()
+        self._p_ir.limpiar()
         self._p_tm.limpiar()
         self._p_sal.limpiar()
         # Quitar subrayados de error del editor activo

@@ -67,7 +67,8 @@ class ResultadoCompilacion:
     sim: List[Sim] = field(default_factory=list)
     arb: NodoArb = None
     arb_anotado: NodoArb = None
-    ir: str = ""
+    ir: str = ""        # código intermedio de tres direcciones (.ci)
+    ruta_ci: str = ""   # ruta del archivo .ci generado
     sal: str = ""
     tm: str = ""        # contenido del archivo .tm generado (leído del disco)
     ruta_tm: str = ""   # ruta del archivo .tm que se muestra y se ejecuta

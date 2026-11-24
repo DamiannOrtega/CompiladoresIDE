@@ -12,6 +12,7 @@ import os
 import sys
 
 from ide.compilador.generador_tm import generar_codigo_tm as _generar_tm
+from ide.compilador.generador_ci import generar_codigo_intermedio as _generar_ci
 from ide.compilador.maquina_tm import ejecutar_archivo as _ejecutar_archivo_tm
 from ide.modelos.datos import (
     Tok, Err, Sim, NodoArb, ResultadoCompilacion
@@ -151,11 +152,10 @@ class ServicioCompilador:
                     for e in errores_sint
                 ]
 
-        elif fase == "ir":
-            res.ir = "-- Generación de código intermedio aún no implementada. --"
-
-        elif fase in ("tm", "run"):
-            # Compilar todo: Léxico -> Sintáctico -> Semántico -> Código TM.
+        elif fase in ("ir", "tm", "run"):
+            # Compilar todo: Léxico -> Sintáctico -> Semántico -> generación.
+            # Del mismo árbol anotado salen, por caminos paralelos, el código
+            # intermedio de tres direcciones (.ci) y el código TM (.tm).
             # La ejecución del .tm la realiza la interfaz con ejecutar_tm(),
             # porque las instrucciones IN necesitan pedir datos al usuario.
             src = _cargar_texto()
@@ -173,7 +173,7 @@ class ServicioCompilador:
                 self._borrar_tm(ruta)
                 res.err.append(Err(
                     tipo="bloqueo", linea=0, col=0,
-                    msg="No se generó código TM porque existen errores léxicos."
+                    msg="No se generó código intermedio ni código TM porque existen errores léxicos."
                 ))
                 return res
 
@@ -203,7 +203,7 @@ class ServicioCompilador:
                 self._borrar_tm(ruta)
                 res.err.append(Err(
                     tipo="bloqueo", linea=0, col=0,
-                    msg="No se generó código TM porque existen errores en las fases de análisis."
+                    msg="No se generó código intermedio ni código TM porque existen errores en las fases de análisis."
                 ))
             else:
                 self._generar_tm(res, tabla, ruta)
@@ -226,17 +226,35 @@ class ServicioCompilador:
         nombre = os.path.splitext(os.path.basename(ruta_fuente))[0] if ruta_fuente else "programa"
         return os.path.join(cls.dir_salida(), f"{nombre or 'programa'}.tm")
 
+    @classmethod
+    def ruta_ci_para(cls, ruta_fuente: str) -> str:
+        return os.path.splitext(cls.ruta_tm_para(ruta_fuente))[0] + ".ci"
+
     def _borrar_tm(self, ruta_fuente: str) -> None:
-        destino = self.ruta_tm_para(ruta_fuente)
-        try:
-            if os.path.isfile(destino):
-                os.remove(destino)
-        except OSError:
-            pass
+        """Borra el .tm y el .ci anteriores de este fuente (nunca mostrarlos como válidos)."""
+        for destino in (self.ruta_tm_para(ruta_fuente), self.ruta_ci_para(ruta_fuente)):
+            try:
+                if os.path.isfile(destino):
+                    os.remove(destino)
+            except OSError:
+                pass
+
+    @staticmethod
+    def _escribir_y_leer(destino: str, texto: str) -> str:
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        with open(destino, "w", encoding="utf-8") as f:
+            f.write(texto)
+        # Se muestra lo que realmente quedó en disco
+        with open(destino, "r", encoding="utf-8") as f:
+            return f.read()
 
     def _generar_tm(self, res: ResultadoCompilacion, tabla, ruta_fuente: str) -> None:
+        """Genera, desde el mismo árbol anotado, el código intermedio (.ci) y el código TM (.tm)."""
         nombre = os.path.basename(ruta_fuente) if ruta_fuente else "(editor sin guardar)"
-        texto, errores_gen = _generar_tm(res.arb_anotado, tabla.obtener_simbolos(), nombre)
+        texto_ci, errores_ci = _generar_ci(res.arb_anotado, nombre)
+        texto_tm, errores_tm = _generar_tm(res.arb_anotado, tabla.obtener_simbolos(), nombre)
+        errores_gen = errores_ci + [e for e in errores_tm
+                                    if e.msg not in {x.msg for x in errores_ci}]
         if errores_gen:
             self._borrar_tm(ruta_fuente)
             res.err.extend(
@@ -245,14 +263,11 @@ class ServicioCompilador:
             )
             return
 
-        destino = self.ruta_tm_para(ruta_fuente)
-        os.makedirs(os.path.dirname(destino), exist_ok=True)
-        with open(destino, "w", encoding="utf-8") as f:
-            f.write(texto)
-        # Se muestra lo que realmente quedó en disco: el mismo archivo que se ejecuta
-        with open(destino, "r", encoding="utf-8") as f:
-            res.tm = f.read()
-        res.ruta_tm = destino
+        res.ruta_ci = self.ruta_ci_para(ruta_fuente)
+        res.ir = self._escribir_y_leer(res.ruta_ci, texto_ci)
+        # El .tm que se muestra es el mismo archivo que se ejecuta
+        res.ruta_tm = self.ruta_tm_para(ruta_fuente)
+        res.tm = self._escribir_y_leer(res.ruta_tm, texto_tm)
 
     @staticmethod
     def ejecutar_tm(ruta_tm: str, leer_entrada, escribir_salida=None, interrumpir=None):

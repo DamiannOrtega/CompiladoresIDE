@@ -16,9 +16,11 @@ import re
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton,
-    QPlainTextEdit, QTextEdit, QSplitter, QLineEdit,
+    QPlainTextEdit, QTextEdit, QSplitter, QLineEdit, QSizePolicy,
 )
 from PySide6.QtCore import Qt, Signal, QTimer
+
+from ide.ui.etiqueta import EtiquetaRecortable
 from PySide6.QtGui import QFont
 
 # Colores pensados para verse sobre fondos oscuros y claros
@@ -68,7 +70,8 @@ class PanelSal(QWidget):
         titulo = QLabel("Consola de ejecución")
         titulo.setStyleSheet("font-weight: 600;")
         blay.addWidget(titulo)
-        self._lbl_estado = QLabel("")
+        titulo.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        self._lbl_estado = EtiquetaRecortable("")
         self._lbl_estado.setStyleSheet(f"color: {_COLOR_TENUE};")
         blay.addWidget(self._lbl_estado)
         blay.addStretch()
@@ -81,7 +84,7 @@ class PanelSal(QWidget):
         self._btn_detener.setVisible(False)
         blay.addWidget(self._btn_detener)
 
-        self._btn_reg = QPushButton("Mostrar registro técnico")
+        self._btn_reg = QPushButton("Registro técnico")
         self._btn_reg.setStyleSheet(css)
         self._btn_reg.setToolTip("Detalles internos de la ejecución en la TM (ruta, lecturas, estado, registros)")
         self._btn_reg.clicked.connect(self._alternar_registro)
@@ -258,7 +261,7 @@ class PanelSal(QWidget):
     def _alternar_registro(self):
         visible = not self._reg.isVisible()
         self._reg.setVisible(visible)
-        self._btn_reg.setText("Ocultar registro técnico" if visible else "Mostrar registro técnico")
+        self._btn_reg.setText("Ocultar registro" if visible else "Registro técnico")
         if visible:
             total = max(self._split.height(), 200)
             self._split.setSizes([total * 3 // 5, total * 2 // 5])

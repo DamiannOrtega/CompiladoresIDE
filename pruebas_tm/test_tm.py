@@ -159,6 +159,66 @@ class TestGeneracionTM(unittest.TestCase):
         self.assertEqual(res.tm, "")
 
 
+class TestCodigoIntermedio(unittest.TestCase):
+    """Código intermedio de tres direcciones (.ci), generado en paralelo al .tm."""
+
+    FACTORIAL = [
+        "read x", "fact = 1", "t1 = 0 < x", "if_false t1 goto L1", "L2:",
+        "t2 = fact * x", "fact = t2", "x = x - 1", "t3 = x == 0", "if_false t3 goto L2",
+        "write fact", "writeln", "L1:", "halt",
+    ]
+
+    @staticmethod
+    def instrucciones(texto):
+        """Líneas de código sin comentarios ni numeración."""
+        res = []
+        for l in texto.splitlines():
+            if not l.strip() or l.startswith("//"):
+                continue
+            m = re.match(r"\s*\d+:\s+(.*)$", l)
+            res.append(m.group(1).strip() if m else l.strip())
+        return res
+
+    def test_factorial_como_en_el_libro(self):
+        res = compilar("p05_factorial.src")
+        self.assertEqual(self.instrucciones(res.ir), self.FACTORIAL)
+
+    def test_estructura_de_todos_los_programas(self):
+        programas = [os.path.join(DIR_PRUEBAS, n) for n in CASOS]
+        dir_ej = os.path.join(RAIZ, "ejercicios")
+        for g in range(1, 13):
+            for k in range(1, 6):
+                programas.append(os.path.join(dir_ej, f"grupo{g}", f"ej{k}.src"))
+        for ruta in programas:
+            with self.subTest(programa=os.path.relpath(ruta, RAIZ)):
+                res = ServicioCompilador().compilar("tm", ruta=ruta)
+                self.assertEqual(res.err, [])
+                with open(res.ruta_ci, encoding="utf-8") as f:
+                    self.assertEqual(f.read(), res.ir, "lo mostrado debe ser el archivo en disco")
+                lineas = self.instrucciones(res.ir)
+                self.assertEqual(lineas[-1], "halt")
+                definidas = {l[:-1] for l in lineas if re.fullmatch(r"L\d+:", l)}
+                usadas = set(re.findall(r"goto (L\d+)", res.ir))
+                self.assertEqual(usadas - definidas, set(), "saltos a etiquetas inexistentes")
+                asignados = set()
+                for l in lineas:
+                    m = re.match(r"(t\d+) = (.*)", l)
+                    usados = set(re.findall(r"\bt\d+\b", m.group(2) if m else l))
+                    self.assertEqual(usados - asignados, set(), f"temporal usado antes de asignarse: {l}")
+                    if m:
+                        asignados.add(m.group(1))
+
+    def test_errores_no_generan_ci(self):
+        for nombre in ERRONEOS:
+            with self.subTest(programa=nombre):
+                destino = ServicioCompilador.ruta_ci_para(nombre)
+                with open(destino, "w", encoding="utf-8") as f:
+                    f.write("// viejo\n")
+                res = compilar(nombre)
+                self.assertEqual(res.ir, "")
+                self.assertFalse(os.path.isfile(destino), "no debe quedar un .ci previo")
+
+
 class TestEjecucionTM(unittest.TestCase):
 
     def ejecutar(self, ruta_tm, entradas):

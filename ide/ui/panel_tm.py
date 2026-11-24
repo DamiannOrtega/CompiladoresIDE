@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QFont
 
+from ide.ui.etiqueta import EtiquetaRecortable
+
 from ide.compilador.tm_formato import (
     parsear_programa, lista_ordenada, ErrorFormatoTM, EXTENSIONES,
 )
@@ -52,7 +54,7 @@ class PanelTm(QWidget):
         titulo.setStyleSheet("font-weight: 600;")
         blay.addWidget(titulo)
 
-        self._lbl_info = QLabel("Sin código generado")
+        self._lbl_info = EtiquetaRecortable("Sin código generado")
         self._lbl_info.setStyleSheet("color: #94a3b8;")
         blay.addWidget(self._lbl_info)
         blay.addStretch()

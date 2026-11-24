@@ -197,6 +197,10 @@ QToolButton:pressed {{
     background-color: {p['pressed']};
     color: {p['sel_txt']};
 }}
+QToolButton:checked {{
+    background-color: {p['hover_menu']};
+    border-bottom: 2px solid {p['acento']};
+}}
 
 /* ── Barra de estado ── */
 QStatusBar {{

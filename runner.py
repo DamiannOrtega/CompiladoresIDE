@@ -18,6 +18,7 @@
 #   tabla_simbolos.txt        Tabla de símbolos formateada en texto
 #   errores_semanticos.json   Errores semánticos en JSON
 #   errores_semanticos.txt    Errores semánticos en formato legible
+#   <programa>.ci             Código intermedio de tres direcciones (si no hay errores)
 #   <programa>.tm             Instrucciones para la Tiny Machine (si no hay errores)
 
 import sys
@@ -30,6 +31,7 @@ from ide.compilador.lexico import analyze
 from ide.compilador.sintatico import parse
 from ide.compilador.semantico import analyze_semantics, ast_anotado_a_texto
 from ide.compilador.generador_tm import generar_codigo_tm
+from ide.compilador.generador_ci import generar_codigo_intermedio
 from ide.compilador.maquina_tm import ejecutar_archivo
 
 
@@ -281,22 +283,29 @@ def main():
 
     # ── Fase 4: Generación de código TM ──────────────────────────────────────
     print()
-    print("Fase 4 - Generacion de codigo TM")
+    print("Fase 4 - Generacion de codigo intermedio y codigo TM")
     ruta_tm = os.path.join(
         dir_salida, os.path.splitext(os.path.basename(ruta_entrada))[0] + ".tm")
     if errores_sem:
-        if os.path.isfile(ruta_tm):
-            os.remove(ruta_tm)
+        for viejo in (ruta_tm, os.path.splitext(ruta_tm)[0] + ".ci"):
+            if os.path.isfile(viejo):
+                os.remove(viejo)
         print("  X Omitido: existen errores semanticos.")
     else:
         texto_tm, errores_gen = generar_codigo_tm(
             arbol_anotado, simbolos, os.path.basename(ruta_entrada))
         if errores_gen:
-            if os.path.isfile(ruta_tm):
-                os.remove(ruta_tm)
+            for viejo in (ruta_tm, os.path.splitext(ruta_tm)[0] + ".ci"):
+                if os.path.isfile(viejo):
+                    os.remove(viejo)
             for e in errores_gen:
                 print(f"  [GEN] L{e.linea}  {e.msg}")
         else:
+            texto_ci, _ = generar_codigo_intermedio(arbol_anotado, os.path.basename(ruta_entrada))
+            ruta_ci = os.path.splitext(ruta_tm)[0] + ".ci"
+            with open(ruta_ci, "w", encoding="utf-8") as f:
+                f.write(texto_ci)
+            print(f"  Codigo intermedio: {ruta_ci}")
             with open(ruta_tm, "w", encoding="utf-8") as f:
                 f.write(texto_tm)
             n_instr = sum(1 for l in texto_tm.splitlines()
