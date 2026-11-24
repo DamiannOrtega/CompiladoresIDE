@@ -4,36 +4,71 @@
 main {
   int matricula, carrera, semestre;
   float promedio;
-  bool aceptado;
+  bool aceptado, carreraValida;
+
+  cout << "=== Admisión a las facultades menores ===";
+  cout << "Introduce la matrícula del alumno:";
   cin >> matricula;
+  cout << "Carreras disponibles:";
+  cout << "  1 = Economía";
+  cout << "  2 = Computación";
+  cout << "  3 = Administración";
+  cout << "  4 = Contabilidad";
+  cout << "Introduce el número de la carrera en la que está inscrito:";
   cin >> carrera;
+  cout << "Introduce el semestre que cursa:";
   cin >> semestre;
+  cout << "Introduce el promedio del alumno:";
   cin >> promedio;
+
+  cout << "--- Resultado de la evaluación ---";
+  cout << "Matrícula: " << matricula;
+  cout << "Semestre: " << semestre;
+  cout << "Promedio: " << promedio;
+
   aceptado = false;
+  carreraValida = true;
   if carrera == 1 then
+    cout << "Carrera: Economía";
+    cout << "Requisito: semestre 6 o mayor y promedio de 8.8 o más";
     if semestre >= 6 && promedio >= 8.8 then
       aceptado = true;
     end
   else
     if carrera == 2 then
+      cout << "Carrera: Computación";
+      cout << "Requisito: semestre mayor a 6 y promedio mayor a 8.5";
       if semestre > 6 && promedio > 8.5 then
         aceptado = true;
       end
     else
-      if carrera == 3 || carrera == 4 then
+      if carrera == 3 then
+        cout << "Carrera: Administración";
+        cout << "Requisito: semestre mayor a 5 y promedio mayor a 8.5";
         if semestre > 5 && promedio > 8.5 then
           aceptado = true;
         end
       else
-        cout << "Carrera inválida: " << carrera;
+        if carrera == 4 then
+          cout << "Carrera: Contabilidad";
+          cout << "Requisito: semestre mayor a 5 y promedio mayor a 8.5";
+          if semestre > 5 && promedio > 8.5 then
+            aceptado = true;
+          end
+        else
+          carreraValida = false;
+          cout << "La carrera introducida no es válida: " << carrera;
+          cout << "Debe ser un número del 1 al 4.";
+        end
       end
     end
   end
-  if aceptado then
-    cout << "Matrícula: " << matricula;
-    cout << "Carrera: " << carrera;
-    cout << "Aceptado=1";
-  else
-    cout << "Aceptado=0";
+
+  if carreraValida then
+    if aceptado then
+      cout << "El alumno SÍ es aceptado en la facultad.";
+    else
+      cout << "El alumno NO es aceptado en la facultad: no cumple los requisitos.";
+    end
   end
 }

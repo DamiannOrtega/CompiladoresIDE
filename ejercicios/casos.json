@@ -673,8 +673,14 @@
     "10"
    ],
    "salida": [
-    "Área: 188.4954",
-    "Volumen: 282.7431"
+    "=== Área y volumen de un cilindro ===",
+    "Introduce el radio del cilindro:",
+    "Introduce la altura del cilindro:",
+    "--- Resultados ---",
+    "Radio: 3.0",
+    "Altura: 10.0",
+    "El área del cilindro es: 188.4954",
+    "El volumen del cilindro es: 282.7431"
    ]
   }
  ],
@@ -684,7 +690,13 @@
     "800"
    ],
    "salida": [
-    "Nuevo sueldo: 920.0"
+    "=== Aumento de sueldo de un trabajador ===",
+    "Introduce el sueldo actual del trabajador:",
+    "El sueldo es menor a $1000, le corresponde un aumento del 15%.",
+    "--- Resultados ---",
+    "Sueldo anterior: $800.0",
+    "Aumento: $120.0",
+    "Nuevo sueldo del trabajador: $920.0"
    ]
   },
   {
@@ -692,7 +704,13 @@
     "2000"
    ],
    "salida": [
-    "Nuevo sueldo: 2240.0"
+    "=== Aumento de sueldo de un trabajador ===",
+    "Introduce el sueldo actual del trabajador:",
+    "El sueldo es de $1000 o más, le corresponde un aumento del 12%.",
+    "--- Resultados ---",
+    "Sueldo anterior: $2000.0",
+    "Aumento: $240.0",
+    "Nuevo sueldo del trabajador: $2240.0"
    ]
   },
   {
@@ -700,7 +718,13 @@
     "1000"
    ],
    "salida": [
-    "Nuevo sueldo: 1120.0"
+    "=== Aumento de sueldo de un trabajador ===",
+    "Introduce el sueldo actual del trabajador:",
+    "El sueldo es de $1000 o más, le corresponde un aumento del 12%.",
+    "--- Resultados ---",
+    "Sueldo anterior: $1000.0",
+    "Aumento: $120.0",
+    "Nuevo sueldo del trabajador: $1120.0"
    ]
   }
  ],
@@ -713,9 +737,23 @@
     "8.8"
    ],
    "salida": [
+    "=== Admisión a las facultades menores ===",
+    "Introduce la matrícula del alumno:",
+    "Carreras disponibles:",
+    "  1 = Economía",
+    "  2 = Computación",
+    "  3 = Administración",
+    "  4 = Contabilidad",
+    "Introduce el número de la carrera en la que está inscrito:",
+    "Introduce el semestre que cursa:",
+    "Introduce el promedio del alumno:",
+    "--- Resultado de la evaluación ---",
     "Matrícula: 1001",
-    "Carrera: 1",
-    "Aceptado=1"
+    "Semestre: 6",
+    "Promedio: 8.8",
+    "Carrera: Economía",
+    "Requisito: semestre 6 o mayor y promedio de 8.8 o más",
+    "El alumno SÍ es aceptado en la facultad."
    ]
   },
   {
@@ -726,7 +764,23 @@
     "9.5"
    ],
    "salida": [
-    "Aceptado=0"
+    "=== Admisión a las facultades menores ===",
+    "Introduce la matrícula del alumno:",
+    "Carreras disponibles:",
+    "  1 = Economía",
+    "  2 = Computación",
+    "  3 = Administración",
+    "  4 = Contabilidad",
+    "Introduce el número de la carrera en la que está inscrito:",
+    "Introduce el semestre que cursa:",
+    "Introduce el promedio del alumno:",
+    "--- Resultado de la evaluación ---",
+    "Matrícula: 1002",
+    "Semestre: 6",
+    "Promedio: 9.5",
+    "Carrera: Computación",
+    "Requisito: semestre mayor a 6 y promedio mayor a 8.5",
+    "El alumno NO es aceptado en la facultad: no cumple los requisitos."
    ]
   },
   {
@@ -737,9 +791,23 @@
     "8.6"
    ],
    "salida": [
+    "=== Admisión a las facultades menores ===",
+    "Introduce la matrícula del alumno:",
+    "Carreras disponibles:",
+    "  1 = Economía",
+    "  2 = Computación",
+    "  3 = Administración",
+    "  4 = Contabilidad",
+    "Introduce el número de la carrera en la que está inscrito:",
+    "Introduce el semestre que cursa:",
+    "Introduce el promedio del alumno:",
+    "--- Resultado de la evaluación ---",
     "Matrícula: 1003",
-    "Carrera: 4",
-    "Aceptado=1"
+    "Semestre: 7",
+    "Promedio: 8.6",
+    "Carrera: Contabilidad",
+    "Requisito: semestre mayor a 5 y promedio mayor a 8.5",
+    "El alumno SÍ es aceptado en la facultad."
    ]
   },
   {
@@ -750,7 +818,49 @@
     "8.5"
    ],
    "salida": [
-    "Aceptado=0"
+    "=== Admisión a las facultades menores ===",
+    "Introduce la matrícula del alumno:",
+    "Carreras disponibles:",
+    "  1 = Economía",
+    "  2 = Computación",
+    "  3 = Administración",
+    "  4 = Contabilidad",
+    "Introduce el número de la carrera en la que está inscrito:",
+    "Introduce el semestre que cursa:",
+    "Introduce el promedio del alumno:",
+    "--- Resultado de la evaluación ---",
+    "Matrícula: 1004",
+    "Semestre: 8",
+    "Promedio: 8.5",
+    "Carrera: Administración",
+    "Requisito: semestre mayor a 5 y promedio mayor a 8.5",
+    "El alumno NO es aceptado en la facultad: no cumple los requisitos."
+   ]
+  },
+  {
+   "entradas": [
+    "1005",
+    "9",
+    "4",
+    "9"
+   ],
+   "salida": [
+    "=== Admisión a las facultades menores ===",
+    "Introduce la matrícula del alumno:",
+    "Carreras disponibles:",
+    "  1 = Economía",
+    "  2 = Computación",
+    "  3 = Administración",
+    "  4 = Contabilidad",
+    "Introduce el número de la carrera en la que está inscrito:",
+    "Introduce el semestre que cursa:",
+    "Introduce el promedio del alumno:",
+    "--- Resultado de la evaluación ---",
+    "Matrícula: 1005",
+    "Semestre: 4",
+    "Promedio: 9.0",
+    "La carrera introducida no es válida: 9",
+    "Debe ser un número del 1 al 4."
    ]
   }
  ],
@@ -765,8 +875,17 @@
     "5"
    ],
    "salida": [
-    "Mayor: 12",
-    "Menor: -7"
+    "=== Mayor y menor de N números ===",
+    "¿Cuántos números vas a introducir?",
+    "Introduce el número 1",
+    "Introduce el número 2",
+    "Introduce el número 3",
+    "Introduce el número 4",
+    "Introduce el número 5",
+    "--- Resultados ---",
+    "Cantidad de números introducidos: 5",
+    "El número mayor es: 12",
+    "El número menor es: -7"
    ]
   },
   {
@@ -775,8 +894,13 @@
     "4"
    ],
    "salida": [
-    "Mayor: 4",
-    "Menor: 4"
+    "=== Mayor y menor de N números ===",
+    "¿Cuántos números vas a introducir?",
+    "Introduce el número 1",
+    "--- Resultados ---",
+    "Cantidad de números introducidos: 1",
+    "El número mayor es: 4",
+    "El número menor es: 4"
    ]
   },
   {
@@ -784,7 +908,10 @@
     "0"
    ],
    "salida": [
-    "No se proporcionaron números"
+    "=== Mayor y menor de N números ===",
+    "¿Cuántos números vas a introducir?",
+    "--- Resultados ---",
+    "No se introdujo ningún número, no hay mayor ni menor."
    ]
   }
  ],
@@ -812,20 +939,88 @@
     "5"
    ],
    "salida": [
-    "Año: 2021",
-    "Total producido en el año: 150",
-    "Año: 2022",
-    "Total producido en el año: 50",
-    "No se produjo vino tipo 3 en el año: 2022",
-    "Año: 2023",
-    "Total producido en el año: 15",
-    "Total vino tipo 1: 16",
-    "Total vino tipo 2: 47",
-    "Total vino tipo 3: 33",
-    "Total vino tipo 4: 54",
-    "Total vino tipo 5: 65",
-    "Año con mayor producción de vino tipo 2: 2022",
-    "Litros de vino tipo 2 en ese año: 25"
+    "=== Producción de vino de la bodega ===",
+    "¿De cuántos años se tiene información?",
+    "Datos del año número 1",
+    "Introduce el año (por ejemplo 2024):",
+    "Litros producidos de vino tipo 1:",
+    "Litros producidos de vino tipo 2:",
+    "Litros producidos de vino tipo 3:",
+    "Litros producidos de vino tipo 4:",
+    "Litros producidos de vino tipo 5:",
+    "Total de litros producidos en ese año: 150",
+    "Datos del año número 2",
+    "Introduce el año (por ejemplo 2024):",
+    "Litros producidos de vino tipo 1:",
+    "Litros producidos de vino tipo 2:",
+    "Litros producidos de vino tipo 3:",
+    "Litros producidos de vino tipo 4:",
+    "Litros producidos de vino tipo 5:",
+    "Total de litros producidos en ese año: 50",
+    "En ese año no se produjo vino tipo 3.",
+    "Datos del año número 3",
+    "Introduce el año (por ejemplo 2024):",
+    "Litros producidos de vino tipo 1:",
+    "Litros producidos de vino tipo 2:",
+    "Litros producidos de vino tipo 3:",
+    "Litros producidos de vino tipo 4:",
+    "Litros producidos de vino tipo 5:",
+    "Total de litros producidos en ese año: 15",
+    "=== Resumen de la producción ===",
+    "a) Total de vino tipo 1: 16",
+    "   Total de vino tipo 2: 47",
+    "   Total de vino tipo 3: 33",
+    "   Total de vino tipo 4: 54",
+    "   Total de vino tipo 5: 65",
+    "b) El total de cada año se mostró al capturar sus datos.",
+    "c) Año con mayor producción de vino tipo 2: 2022",
+    "   Litros de vino tipo 2 producidos ese año: 25",
+    "d) Sí hubo años sin producción de vino tipo 3. Cantidad de años: 1",
+    "   Último año sin producción de vino tipo 3: 2022"
+   ]
+  },
+  {
+   "entradas": [
+    "1",
+    "2024",
+    "1",
+    "1",
+    "1",
+    "1",
+    "1"
+   ],
+   "salida": [
+    "=== Producción de vino de la bodega ===",
+    "¿De cuántos años se tiene información?",
+    "Datos del año número 1",
+    "Introduce el año (por ejemplo 2024):",
+    "Litros producidos de vino tipo 1:",
+    "Litros producidos de vino tipo 2:",
+    "Litros producidos de vino tipo 3:",
+    "Litros producidos de vino tipo 4:",
+    "Litros producidos de vino tipo 5:",
+    "Total de litros producidos en ese año: 5",
+    "=== Resumen de la producción ===",
+    "a) Total de vino tipo 1: 1",
+    "   Total de vino tipo 2: 1",
+    "   Total de vino tipo 3: 1",
+    "   Total de vino tipo 4: 1",
+    "   Total de vino tipo 5: 1",
+    "b) El total de cada año se mostró al capturar sus datos.",
+    "c) Año con mayor producción de vino tipo 2: 2024",
+    "   Litros de vino tipo 2 producidos ese año: 1",
+    "d) No hubo ningún año sin producción de vino tipo 3."
+   ]
+  },
+  {
+   "entradas": [
+    "0"
+   ],
+   "salida": [
+    "=== Producción de vino de la bodega ===",
+    "¿De cuántos años se tiene información?",
+    "=== Resumen de la producción ===",
+    "No se capturó información de ningún año."
    ]
   }
  ],

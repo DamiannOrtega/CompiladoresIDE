@@ -53,13 +53,15 @@ En el IDE: abrir el archivo y presionar F9 (Ejecutar TM); los valores se piden e
 
 ## Grupo 5
 
+Estos cinco programas muestran un texto antes de cada dato que piden y explican los resultados con palabras.
+
 | Ej | Tipo | Ejercicio | Entradas (en orden) | Ejemplo: datos → salida |
 |---|---|---|---|---|
-| ej1 | secuencial | Dados el radio y la altura de un cilindro, calcular Volumen = pi * radio^2 * altura y Área = 2 * pi * radio * altura. | Radio, altura (reales) | `3 10` → Área: 188.4954 / Volumen: 282.7431 |
-| ej2 | selectivo | Aplicar al sueldo un aumento del 15% si es inferior a $1000 y del 12% en caso contrario. | Sueldo (real) | `800` → Nuevo sueldo: 920.0 |
-| ej3 | selectivo | Determinar si un alumno es aceptado en una facultad menor: Economía (semestre >= 6 y promedio >= 8.8), Computación (semestre > 6 y promedio > 8.5), Administración y Contabilidad (semestre > 5 y promedio > 8.5). | Matrícula (entero), carrera (1=Economía, 2=Computación, 3=Administración, 4=Contabilidad), semestre (entero), promedio (real) | `1001 1 6 8.8` → Matrícula: 1001 / Carrera: 1 / Aceptado=1 |
-| ej4 | repetitivo | Dados N números enteros, calcular y mostrar el mayor y el menor. | N y luego los N números enteros | `5 3 -7 12 0 5` → Mayor: 12 / Menor: -7 |
-| ej5 | repetitivo | Producción de 5 tipos de vino durante N años: a) total de cada tipo, b) total por año, c) año con mayor producción del tipo 2 y sus litros, d) años en que no se produjo el tipo 3. | N (años); por año: año y litros de los tipos 1 a 5 (enteros) | `3 2021 10 20 30 40 50 2022 5 25 0 10 …` → Año: 2021 / Total producido en el año: 150 / Año: 2022 / Total producido en el año: 50 / … |
+| ej1 | secuencial | Dados el radio y la altura de un cilindro, calcular Volumen = pi * radio^2 * altura y Área = 2 * pi * radio * altura. | Radio, altura (reales) | `3 10` → El área del cilindro es: 188.4954 / El volumen del cilindro es: 282.7431 |
+| ej2 | selectivo | Aplicar al sueldo un aumento del 15% si es inferior a $1000 y del 12% en caso contrario. | Sueldo (real) | `800` → El sueldo es menor a $1000, le corresponde un aumento del 15%. / Aumento: $120.0 / Nuevo sueldo del trabajador: $920.0 |
+| ej3 | selectivo | Determinar si un alumno es aceptado en una facultad menor: Economía (semestre >= 6 y promedio >= 8.8), Computación (semestre > 6 y promedio > 8.5), Administración y Contabilidad (semestre > 5 y promedio > 8.5). | Matrícula (entero), carrera (1=Economía, 2=Computación, 3=Administración, 4=Contabilidad), semestre (entero), promedio (real) | `1001 1 6 8.8` → Carrera: Economía / El alumno SÍ es aceptado en la facultad. |
+| ej4 | repetitivo | Dados N números enteros, calcular y mostrar el mayor y el menor. | N y luego los N números enteros | `5 3 -7 12 0 5` → El número mayor es: 12 / El número menor es: -7 |
+| ej5 | repetitivo | Producción de 5 tipos de vino durante N años: a) total de cada tipo, b) total por año, c) año con mayor producción del tipo 2 y sus litros, d) años en que no se produjo el tipo 3. | N (años); por año: año y litros de los tipos 1 a 5 (enteros) | `3 2021 10 20 30 40 50 2022 5 25 0 10 …` → Total de litros producidos en ese año: 150 / … / c) Año con mayor producción de vino tipo 2: 2022 / d) Sí hubo años sin producción de vino tipo 3 … |
 
 ## Grupo 6
 

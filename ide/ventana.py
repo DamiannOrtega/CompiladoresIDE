@@ -2,6 +2,7 @@
 
 import os
 import ctypes
+import threading
 import ctypes.wintypes
 from PySide6.QtWidgets import (
     QMainWindow, QDockWidget, QTabWidget, QTabBar, QWidget,
@@ -17,7 +18,7 @@ from ide.ui.panel_sim import PanelSim
 from ide.ui.panel_arb import PanelArb
 from ide.ui.panel_sal import PanelSal
 from ide.ui.panel_tm import PanelTm
-from ide.ui.dialogo_entrada import DialogoEntrada, nombre_variable
+from ide.ui.panel_sal import nombre_variable, mensaje_valor_invalido
 from ide.ui.panel_archivos import PanelArchivos
 from ide.modelos.datos import Err
 from ide.compilador.tm_formato import ErrorFormatoTM
@@ -53,6 +54,66 @@ class _WorkerCompilacion(QObject):
             res.err = [Err(tipo="error interno", linea=0, col=0,
                           msg=f"Error inesperado en el compilador: {ex}")]
         self.terminado.emit(self._fase, res)
+
+
+# ── Worker de ejecución TM en hilo de fondo ──────────────────────────────────
+
+class _WorkerEjecucion(QObject):
+    """
+    Ejecuta el simulador TM en un hilo separado.
+
+    Cuando el programa llega a una instrucción IN, el simulador llama a
+    _leer(); ese método emite 'entrada_requerida' hacia la interfaz y espera
+    (threading.Event) a que el usuario envíe el valor desde la consola. Durante
+    la espera la máquina queda en pausa con registros, memoria y pc intactos, y
+    continúa desde la misma instrucción al recibir el dato. La validación la
+    realiza el simulador; si rechaza el valor vuelve a llamar a _leer().
+
+    Todas las señales llevan el id de la ejecución para que la interfaz ignore
+    mensajes de una ejecución anterior ya cancelada.
+    """
+    salida            = Signal(int, str)      # id, línea impresa por el programa
+    entrada_requerida = Signal(int, object)   # id, SolicitudEntrada
+    terminado         = Signal(int, object)   # id, ResultadoEjecucion | Exception
+
+    def __init__(self, id_ejec: int, servicio, ruta_tm: str):
+        super().__init__()
+        self._id = id_ejec
+        self._servicio = servicio
+        self._ruta = ruta_tm
+        self._respuesta = None
+        self._hay_respuesta = threading.Event()
+        self._cancelar = threading.Event()
+
+    def ejecutar(self):
+        try:
+            res = self._servicio.ejecutar_tm(self._ruta, self._leer, self._escribir,
+                                             interrumpir=self._cancelar)
+        except Exception as ex:          # archivo no encontrado / .tm inválido
+            res = ex
+        self.terminado.emit(self._id, res)
+
+    def _escribir(self, linea: str):
+        self.salida.emit(self._id, linea)
+
+    def _leer(self, solicitud):
+        if self._cancelar.is_set():
+            return None
+        self._hay_respuesta.clear()
+        self.entrada_requerida.emit(self._id, solicitud)
+        self._hay_respuesta.wait()          # pausa hasta que el usuario envía el dato
+        if self._cancelar.is_set():
+            return None
+        return self._respuesta
+
+    # Llamados desde el hilo de la interfaz
+    def responder(self, texto: str):
+        self._respuesta = texto
+        self._hay_respuesta.set()
+
+    def cancelar(self):
+        self._cancelar.set()
+        self._hay_respuesta.set()
 
 
 # ── Tab widget con pestañas arrastrables (tear-off) ──────────────────────────
@@ -505,6 +566,10 @@ class VentanaPrincipal(QMainWindow):
         self._acc_semant.triggered.connect(lambda: self._compilar("semantic"))
         self._acc_ir.triggered.connect(lambda: self._compilar("tm"))
         self._p_tm.ejecutar_solicitado.connect(lambda: self._compilar("run"))
+
+        # Consola de ejecución (pestaña Salida)
+        self._p_sal.enviado.connect(self._ejec_enviar)
+        self._p_sal.detener_solicitado.connect(self._ejec_detener)
         self._acc_ejec.triggered.connect(lambda: self._compilar("run"))
         self._acc_todo.triggered.connect(lambda: self._compilar("run"))
 
@@ -708,6 +773,9 @@ class VentanaPrincipal(QMainWindow):
             return
         self._compilando = True
 
+        # Una nueva compilación termina la ejecución TM que siguiera en curso
+        self._detener_ejecucion(esperar=True)
+
         self._set_estado(f"Compilando ({fase})...")
         self._limpiar_paneles()
         self._acc_lexico.setEnabled(False)
@@ -829,7 +897,8 @@ class VentanaPrincipal(QMainWindow):
     def _mensaje_ejecucion(res) -> str:
         """Mensaje comprensible para el usuario según el resultado del simulador."""
         if res.estado == "CANCELADO":
-            return "Ejecución cancelada: no se introdujo el valor solicitado."
+            # Sólo ocurre con "Detener", una nueva compilación o al cerrar el IDE
+            return "Ejecución detenida por el usuario."
         if res.estado == "LIMITE":
             return ("La ejecución se detuvo: el programa superó el número máximo de "
                     "instrucciones permitidas (posible ciclo infinito).")
@@ -839,52 +908,105 @@ class VentanaPrincipal(QMainWindow):
             return "La ejecución se detuvo: acceso inválido a memoria."
         return "La ejecución se detuvo por un error."
 
+    def _ejecutando(self) -> bool:
+        return getattr(self, "_worker_ejec", None) is not None
+
     def _ejecutar_tm(self, ruta_tm: str):
         """
         Ejecuta en el simulador el mismo archivo .tm que se muestra en el
-        panel "Código TM". Cada lectura pide el valor con el diálogo
-        "Entrada de datos"; los resultados aparecen en la pestaña "Salida" y
-        los detalles internos en su registro técnico.
+        panel "Código TM", en un hilo aparte. La pestaña "Salida" funciona como
+        consola: cada instrucción IN pausa la máquina y muestra un campo para
+        introducir el dato; las salidas aparecen conforme se producen.
         """
+        self._detener_ejecucion(esperar=True)
+
         sal = self._p_sal
         programa = (os.path.basename(self._ruta_arch) if self._ruta_arch
                     else "programa sin guardar")
-
-        def refrescar():
-            QApplication.processEvents()
-
-        def leer(sol):
-            variable = nombre_variable(sol.comentario)
-            if sol.error_previo:
-                sal.registro(f"  rechazado por el simulador: {sol.error_previo}")
-            aviso = ("El valor anterior no es válido. Escribe un valor del tipo indicado."
-                     if sol.error_previo else "")
-            dlg = DialogoEntrada(variable, sol.tipo, aviso, self)
-            self._colorear_dialogo(dlg)
-            if dlg.exec() != DialogoEntrada.Accepted:
-                sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario}: cancelada")
-                return None
-            valor = dlg.valor()
-            sal.dato_introducido(variable, valor)
-            sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario} <- {valor}")
-            refrescar()
-            return valor
-
-        def escribir(linea: str):
-            sal.resultado(linea)
-            refrescar()
+        self._id_ejec = getattr(self, "_id_ejec", 0) + 1
+        self._solicitud_actual = None
+        self._ultimo_valor = ""
 
         sal.iniciar_ejecucion(programa)
         sal.registro(f"Archivo .tm cargado en el simulador: {ruta_tm}")
         self._mostrar_panel(sal)
         self._set_estado("Ejecutando TM...")
-        refrescar()
-        try:
-            res = self._servicio.ejecutar_tm(ruta_tm, leer, escribir)
-        except (OSError, ErrorFormatoTM) as ex:
+
+        self._hilo_ejec = QThread(self)
+        self._worker_ejec = _WorkerEjecucion(self._id_ejec, self._servicio, ruta_tm)
+        self._worker_ejec.moveToThread(self._hilo_ejec)
+        self._hilo_ejec.started.connect(self._worker_ejec.ejecutar)
+        self._worker_ejec.salida.connect(self._ejec_salida)
+        self._worker_ejec.entrada_requerida.connect(self._ejec_entrada)
+        self._worker_ejec.terminado.connect(self._ejec_terminada)
+        self._worker_ejec.terminado.connect(self._hilo_ejec.quit)
+        self._hilo_ejec.finished.connect(self._worker_ejec.deleteLater)
+        self._hilo_ejec.start()
+
+    def _detener_ejecucion(self, esperar: bool = False):
+        """Cancela la ejecución en curso (si la hay)."""
+        worker = getattr(self, "_worker_ejec", None)
+        if worker is None:
+            return
+        worker.cancelar()
+        if esperar:
+            hilo = self._hilo_ejec
+            self._worker_ejec = None          # sus señales posteriores se ignoran
+            self._id_ejec = getattr(self, "_id_ejec", 0) + 1
+            hilo.quit()
+            hilo.wait(5000)
+            self._p_sal.set_ejecutando(False)
+
+    # Slots de la ejecución (hilo principal)
+
+    def _ejec_salida(self, id_ejec: int, linea: str):
+        if id_ejec == self._id_ejec:
+            self._p_sal.resultado(linea)
+
+    def _ejec_entrada(self, id_ejec: int, sol):
+        if id_ejec != self._id_ejec:
+            return
+        sal = self._p_sal
+        variable = nombre_variable(sol.comentario)
+        if sol.error_previo and self._solicitud_actual is not None:
+            sal.registro(f"  rechazado por el simulador: {sol.error_previo}")
+            sal.valor_rechazado(mensaje_valor_invalido(self._ultimo_valor, sol.tipo),
+                                variable, sol.tipo)
+        else:
+            sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario}: esperando valor")
+            sal.solicitar(variable, sol.tipo)
+        self._solicitud_actual = sol
+        self._mostrar_panel(sal)
+        self._set_estado("Esperando entrada...")
+
+    def _ejec_enviar(self, texto: str):
+        worker = getattr(self, "_worker_ejec", None)
+        sol = self._solicitud_actual
+        if worker is None or sol is None:
+            return
+        variable = nombre_variable(sol.comentario)
+        self._ultimo_valor = texto
+        self._p_sal.valor_introducido(variable, texto.strip())
+        self._p_sal.registro(f"IN  [instrucción {sol.direccion}] {sol.comentario} <- {texto.strip()}")
+        self._set_estado("Ejecutando TM...")
+        worker.responder(texto)
+
+    def _ejec_detener(self):
+        if self._ejecutando():
+            self._p_sal.registro("Detención solicitada por el usuario")
+            self._detener_ejecucion(esperar=False)
+
+    def _ejec_terminada(self, id_ejec: int, res):
+        if id_ejec != self._id_ejec:
+            return
+        self._worker_ejec = None
+        self._solicitud_actual = None
+        sal = self._p_sal
+
+        if isinstance(res, Exception):
             sal.fin_con_error("No se pudo cargar el código TM para ejecutarlo.")
-            sal.registro(f"Error al cargar el archivo .tm: {ex}")
-            self._p_err.cargar([Err(tipo="ejecución", linea=0, col=0, msg=str(ex))])
+            sal.registro(f"Error al cargar el archivo .tm: {res}")
+            self._p_err.cargar([Err(tipo="ejecución", linea=0, col=0, msg=str(res))])
             self._set_estado("Error al cargar el código TM")
             return
 
@@ -983,6 +1105,7 @@ class VentanaPrincipal(QMainWindow):
             if getattr(self._tabs_editor.widget(i), "_modificado", False)
         ]
         if not pestanas_modificadas:
+            self._detener_ejecucion(esperar=True)
             evento.accept()
             return
 
@@ -1007,8 +1130,10 @@ class VentanaPrincipal(QMainWindow):
                 if ed._modificado:
                     self._tabs_editor.setCurrentWidget(ed)
                     self._guardar()
+            self._detener_ejecucion(esperar=True)
             evento.accept()
         elif clicked == btn_salir:
+            self._detener_ejecucion(esperar=True)
             evento.accept()
         else:
             evento.ignore()

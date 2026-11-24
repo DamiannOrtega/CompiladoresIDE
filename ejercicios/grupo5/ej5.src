@@ -3,9 +3,12 @@
 // Entradas: N (años); por año: año y litros de los tipos 1 a 5 (enteros)
 main {
   int n, i, anio, v1, v2, v3, v4, v5;
-  int t1, t2, t3, t4, t5, totalAnio, max2, anioMax2;
-  bool haySinTipo3;
+  int t1, t2, t3, t4, t5, totalAnio, max2, anioMax2, aniosSinTipo3, ultimoSinTipo3;
+
+  cout << "=== Producción de vino de la bodega ===";
+  cout << "¿De cuántos años se tiene información?";
   cin >> n;
+
   t1 = 0;
   t2 = 0;
   t3 = 0;
@@ -13,41 +16,62 @@ main {
   t5 = 0;
   max2 = 0 - 1;
   anioMax2 = 0;
-  haySinTipo3 = false;
+  aniosSinTipo3 = 0;
+  ultimoSinTipo3 = 0;
+
   i = 1;
   while i <= n
+    cout << "Datos del año número " << i;
+    cout << "Introduce el año (por ejemplo 2024):";
     cin >> anio;
+    cout << "Litros producidos de vino tipo 1:";
     cin >> v1;
+    cout << "Litros producidos de vino tipo 2:";
     cin >> v2;
+    cout << "Litros producidos de vino tipo 3:";
     cin >> v3;
+    cout << "Litros producidos de vino tipo 4:";
     cin >> v4;
+    cout << "Litros producidos de vino tipo 5:";
     cin >> v5;
+
     t1 = t1 + v1;
     t2 = t2 + v2;
     t3 = t3 + v3;
     t4 = t4 + v4;
     t5 = t5 + v5;
     totalAnio = v1 + v2 + v3 + v4 + v5;
-    cout << "Año: " << anio;
-    cout << "Total producido en el año: " << totalAnio;
+    cout << "Total de litros producidos en ese año: " << totalAnio;
+
     if v2 > max2 then
       max2 = v2;
       anioMax2 = anio;
     end
     if v3 == 0 then
-      cout << "No se produjo vino tipo 3 en el año: " << anio;
-      haySinTipo3 = true;
+      cout << "En ese año no se produjo vino tipo 3.";
+      aniosSinTipo3++;
+      ultimoSinTipo3 = anio;
     end
     i++;
   end
-  cout << "Total vino tipo 1: " << t1;
-  cout << "Total vino tipo 2: " << t2;
-  cout << "Total vino tipo 3: " << t3;
-  cout << "Total vino tipo 4: " << t4;
-  cout << "Total vino tipo 5: " << t5;
-  cout << "Año con mayor producción de vino tipo 2: " << anioMax2;
-  cout << "Litros de vino tipo 2 en ese año: " << max2;
-  if !haySinTipo3 then
-    cout << "En todos los años se produjo vino tipo 3";
+
+  cout << "=== Resumen de la producción ===";
+  if n > 0 then
+    cout << "a) Total de vino tipo 1: " << t1;
+    cout << "   Total de vino tipo 2: " << t2;
+    cout << "   Total de vino tipo 3: " << t3;
+    cout << "   Total de vino tipo 4: " << t4;
+    cout << "   Total de vino tipo 5: " << t5;
+    cout << "b) El total de cada año se mostró al capturar sus datos.";
+    cout << "c) Año con mayor producción de vino tipo 2: " << anioMax2;
+    cout << "   Litros de vino tipo 2 producidos ese año: " << max2;
+    if aniosSinTipo3 > 0 then
+      cout << "d) Sí hubo años sin producción de vino tipo 3. Cantidad de años: " << aniosSinTipo3;
+      cout << "   Último año sin producción de vino tipo 3: " << ultimoSinTipo3;
+    else
+      cout << "d) No hubo ningún año sin producción de vino tipo 3.";
+    end
+  else
+    cout << "No se capturó información de ningún año.";
   end
 }

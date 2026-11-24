@@ -115,11 +115,15 @@ class MaquinaTM:
         escribir_salida: Optional[Callable[[str], None]] = None,
         max_pasos: int = PASOS_MAXIMOS,
         traza: Optional[Callable[[str], None]] = None,
+        interrumpir=None,
     ) -> ResultadoEjecucion:
         """
         Ejecuta desde la dirección 0 hasta HALT, un error o max_pasos.
         leer_entrada recibe una SolicitudEntrada y devuelve el texto escrito por
-        el usuario, o None para cancelar la ejecución.
+        el usuario, o None para cancelar la ejecución. Mientras leer_entrada
+        espera, la máquina queda en pausa con registros, memoria y pc intactos.
+        interrumpir (opcional): objeto con is_set() (p. ej. threading.Event);
+        si se activa, la ejecución se detiene con estado "CANCELADO".
         """
         self.reiniciar()
         res = ResultadoEjecucion(estado="HALT")
@@ -164,6 +168,10 @@ class MaquinaTM:
                     res.estado = "LIMITE"
                     res.mensaje = (f"Se alcanzó el límite de {max_pasos} instrucciones "
                                    "ejecutadas (¿ciclo infinito?)")
+                    break
+                if interrumpir is not None and not (pasos & 4095) and interrumpir.is_set():
+                    res.estado = "CANCELADO"
+                    res.mensaje = "Ejecución detenida por el usuario"
                     break
                 pc = reg[REG_PC]
                 if pc < 0 or pc >= tam_i:
@@ -315,11 +323,12 @@ class MaquinaTM:
 
 
 def ejecutar_archivo(ruta: str, leer_entrada, escribir_salida=None,
-                     max_pasos: int = PASOS_MAXIMOS, traza=None) -> ResultadoEjecucion:
+                     max_pasos: int = PASOS_MAXIMOS, traza=None,
+                     interrumpir=None) -> ResultadoEjecucion:
     """Carga el archivo .tm indicado y lo ejecuta."""
     maq = MaquinaTM()
     maq.cargar_archivo(ruta)
-    return maq.ejecutar(leer_entrada, escribir_salida, max_pasos, traza)
+    return maq.ejecutar(leer_entrada, escribir_salida, max_pasos, traza, interrumpir)
 
 
 # ── Ejecución por consola ─────────────────────────────────────────────────────

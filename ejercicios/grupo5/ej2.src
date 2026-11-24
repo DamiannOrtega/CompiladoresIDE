@@ -2,12 +2,23 @@
 // Aplicar al sueldo un aumento del 15% si es inferior a $1000 y del 12% en caso contrario.
 // Entradas: Sueldo (real)
 main {
-  float sueldo, nuevo;
+  float sueldo, aumento, nuevo;
+
+  cout << "=== Aumento de sueldo de un trabajador ===";
+  cout << "Introduce el sueldo actual del trabajador:";
   cin >> sueldo;
+
   if sueldo < 1000 then
-    nuevo = sueldo * 1.15;
+    aumento = sueldo * 0.15;
+    cout << "El sueldo es menor a $1000, le corresponde un aumento del 15%.";
   else
-    nuevo = sueldo * 1.12;
+    aumento = sueldo * 0.12;
+    cout << "El sueldo es de $1000 o más, le corresponde un aumento del 12%.";
   end
-  cout << "Nuevo sueldo: " << nuevo;
+  nuevo = sueldo + aumento;
+
+  cout << "--- Resultados ---";
+  cout << "Sueldo anterior: $" << sueldo;
+  cout << "Aumento: $" << aumento;
+  cout << "Nuevo sueldo del trabajador: $" << nuevo;
 }

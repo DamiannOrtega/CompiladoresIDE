@@ -29,9 +29,8 @@ fuente → léxico → sintáctico → árbol → semántico ─┬─ (errores)
 | `ide/compilador/maquina_tm.py` | Simulador (como `tm.c`). Uso por consola: `python -m ide.compilador.maquina_tm archivo.tm [--traza]` |
 | `ide/servicios/compilador.py` | Fases `tm` y `run`: generan y escriben el `.tm`; `ejecutar_tm()` lo ejecuta |
 | `ide/ui/panel_tm.py` | Pestaña "Código TM": tabla Dirección/Instrucción/Operandos/Comentario y vista del archivo |
-| `ide/ventana.py` | F8 "Generar Código TM", F9 "Ejecutar TM". Cada lectura abre la ventana "Entrada de datos"; los resultados aparecen en "Salida" |
-| `ide/ui/dialogo_entrada.py` | Ventana "Entrada de datos": variable, tipo esperado y validación antes de continuar |
-| `ide/ui/panel_sal.py` | Pestaña "Salida": salida limpia del programa y un "Registro técnico" desplegable (ruta del .tm, lecturas con su instrucción, estado, pasos y registros) |
+| `ide/ventana.py` | F8 "Generar Código TM", F9 "Ejecutar TM". `_WorkerEjecucion` corre el simulador en un hilo: en cada IN la máquina queda en pausa (registros, memoria y pc intactos) hasta que el usuario envía el dato desde la consola |
+| `ide/ui/panel_sal.py` | Pestaña "Salida": consola interactiva (solicitudes de datos, valores introducidos, resultados, errores), campo "Enviar" que aparece sólo cuando el programa pide un dato, botón "Detener" y un "Registro técnico" desplegable |
 | `runner.py` | La CLI genera el `.tm`; con `--ejecutar` también lo ejecuta |
 | `pruebas_tm/` | Programas de prueba y `test_tm.py` (`python -m unittest pruebas_tm.test_tm -v`) |
 

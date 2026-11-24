@@ -3,10 +3,19 @@
 // Entradas: Radio, altura (reales)
 main {
   float radio, altura, volumen, area;
+
+  cout << "=== Área y volumen de un cilindro ===";
+  cout << "Introduce el radio del cilindro:";
   cin >> radio;
+  cout << "Introduce la altura del cilindro:";
   cin >> altura;
+
   volumen = 3.14159 * radio ^ 2 * altura;
   area = 2 * 3.14159 * radio * altura;
-  cout << "Área: " << area;
-  cout << "Volumen: " << volumen;
+
+  cout << "--- Resultados ---";
+  cout << "Radio: " << radio;
+  cout << "Altura: " << altura;
+  cout << "El área del cilindro es: " << area;
+  cout << "El volumen del cilindro es: " << volumen;
 }

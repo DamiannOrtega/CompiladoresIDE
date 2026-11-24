@@ -255,6 +255,7 @@ class ServicioCompilador:
         res.ruta_tm = destino
 
     @staticmethod
-    def ejecutar_tm(ruta_tm: str, leer_entrada, escribir_salida=None):
+    def ejecutar_tm(ruta_tm: str, leer_entrada, escribir_salida=None, interrumpir=None):
         """Carga el archivo .tm del disco y lo ejecuta en el simulador TM."""
-        return _ejecutar_archivo_tm(ruta_tm, leer_entrada, escribir_salida)
+        return _ejecutar_archivo_tm(ruta_tm, leer_entrada, escribir_salida,
+                                    interrumpir=interrumpir)

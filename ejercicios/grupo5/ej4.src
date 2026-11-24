@@ -3,9 +3,14 @@
 // Entradas: N y luego los N números enteros
 main {
   int n, i, x, mayor, menor;
+
+  cout << "=== Mayor y menor de N números ===";
+  cout << "¿Cuántos números vas a introducir?";
   cin >> n;
+
   i = 1;
   while i <= n
+    cout << "Introduce el número " << i;
     cin >> x;
     if i == 1 then
       mayor = x;
@@ -20,10 +25,13 @@ main {
     end
     i++;
   end
+
+  cout << "--- Resultados ---";
   if n > 0 then
-    cout << "Mayor: " << mayor;
-    cout << "Menor: " << menor;
+    cout << "Cantidad de números introducidos: " << n;
+    cout << "El número mayor es: " << mayor;
+    cout << "El número menor es: " << menor;
   else
-    cout << "No se proporcionaron números";
+    cout << "No se introdujo ningún número, no hay mayor ni menor.";
   end
 }
